@@ -1,0 +1,10 @@
+**/Binaries/
+**/Intermediate/
+**/Saved/
+.idea/
+.vs/
+.vsconfig
+Build/
+Content/Collections/
+Content/Developers/
+Plugins/Developer/

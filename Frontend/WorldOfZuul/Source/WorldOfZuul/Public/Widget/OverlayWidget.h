@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
+#include "Gameplay/WOZGameplayData.h"
 #include "OverlayWidget.generated.h"
 
 struct FWOZCommandReplyMsg;
@@ -31,7 +32,14 @@ public:
 
 	void AddCommandReplyMsg(const FWOZCommandReplyMsg& Msg);
 	void RefreshBagItems();
+	
 	void ExecuteCommand(const FString& Command);
+
+	UFUNCTION(BlueprintCallable, Category = "WOZ")
+	void ExecuteCommand_ItemTarget(TEnumAsByte<EWOZCommand::Type> Command, TEnumAsByte<EWOZGameItem::Type> Target);
+
+	UFUNCTION(BlueprintCallable, Category = "WOZ")
+	void ExecuteCommand_DirectionTarget(TEnumAsByte<EWOZCommand::Type> Command, TEnumAsByte<EWOZGameRoomDirection::Type> Target);
 
 private:
 	UFUNCTION()

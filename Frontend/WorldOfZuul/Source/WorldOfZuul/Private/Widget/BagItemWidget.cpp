@@ -17,7 +17,8 @@ UBagItemWidget* UBagItemWidget::CreateBagItemWidget(UOverlayWidget* Overlay, TSu
 	FString Str = BagItemWidget->ItemInfo.Name.ToString() + " (" + TEXT("重量: ") + FString::FromInt(BagItemWidget->ItemInfo.Weight) + ")";
 	BagItemWidget->TextBlock_Item->SetText(FText::FromString(Str));
 	BagItemWidget->TextBlock_Func->SetText(GameplayData->CommandNames.FindRef(GameplayData->Items.FindRef(Item).InBagDefaultCommand));
-
+	BagItemWidget->TextBlock_Description->SetText(BagItemWidget->ItemInfo.Description);
+	
 	return BagItemWidget;
 }
 

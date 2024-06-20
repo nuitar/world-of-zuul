@@ -6,6 +6,7 @@
 #include "GameFramework/Character.h"
 #include "WOZPlayerCharacter.generated.h"
 
+class UWOZGameplayData;
 class UFloatingPawnMovement;
 struct FInputActionValue;
 
@@ -17,4 +18,18 @@ class WORLDOFZUUL_API AWOZPlayerCharacter : public ACharacter
 public:
 	AWOZPlayerCharacter();
 
+	virtual void BeginPlay() override;
+
+private:
+	UPROPERTY(VisibleAnywhere)
+	TObjectPtr<UStaticMeshComponent> Plane;
+	
+	UPROPERTY(EditAnywhere, Category = "WOZ")
+	TObjectPtr<UWOZGameplayData> GameplayData;
+	
+	UPROPERTY(EditAnywhere, Category = "WOZ")
+	TObjectPtr<UTexture> AvatarTexture;
+
+	UPROPERTY()
+	TObjectPtr<UMaterialInstanceDynamic> MaterialInstanceDynamic;
 };

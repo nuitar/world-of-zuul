@@ -29,7 +29,13 @@ public:
 
 	UFUNCTION(Client, Reliable)
 	void ReplyCommand(const FWOZCommandReplyMsg& Msg);
-	
+
+	UFUNCTION(BlueprintCallable, Category = "WOZ")
+	void ExecuteCommand_ItemTarget(TEnumAsByte<EWOZCommand::Type> Command, TEnumAsByte<EWOZGameItem::Type> Target);
+
+	UFUNCTION(BlueprintCallable, Category = "WOZ")
+	void ExecuteCommand_DirectionTarget(TEnumAsByte<EWOZCommand::Type> Command, TEnumAsByte<EWOZGameRoomDirection::Type> Target);
+
 	
 protected:
 	virtual void BeginPlay() override;
@@ -60,6 +66,7 @@ private:
 
 	AWOZGameItem* GetNearestItem(EWOZGameItem::Type ItemEnum, AWOZGameRoom* Room) const;
 	void GotoRoom(AWOZGameRoom* Room);
+	FText TeleportRandom();
 
 protected:
 	UPROPERTY()

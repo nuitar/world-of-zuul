@@ -80,6 +80,18 @@ void UOverlayWidget::ExecuteCommand(const FString& Command)
 	PlayerController->ExecuteCommand(Command);
 }
 
+void UOverlayWidget::ExecuteCommand_ItemTarget(TEnumAsByte<EWOZCommand::Type> Command, TEnumAsByte<EWOZGameItem::Type> Target)
+{
+	check(PlayerController);
+	PlayerController->ExecuteCommand_ItemTarget(Command, Target);
+}
+
+void UOverlayWidget::ExecuteCommand_DirectionTarget(TEnumAsByte<EWOZCommand::Type> Command, TEnumAsByte<EWOZGameRoomDirection::Type> Target)
+{
+	check(PlayerController);
+	PlayerController->ExecuteCommand_DirectionTarget(Command, Target);
+}
+
 void UOverlayWidget::OnScoreUpdated(AWOZPlayerState* PS)
 {
 	check(PlayerState);
@@ -90,7 +102,8 @@ void UOverlayWidget::OnScoreUpdated(AWOZPlayerState* PS)
 void UOverlayWidget::OnRoomPositionHistoryUpdated(AWOZPlayerState* PS)
 {
 	check(PlayerState);
-	const FString& Str = FString::FromInt(PlayerState->GetCurrentRoomPosition().X) + " , " + FString::FromInt(PlayerState->GetCurrentRoomPosition().Y);
+
+	const FString& Str = "(" + FString::FromInt(PlayerState->GetCurrentRoomPosition().X) + " , " + FString::FromInt(PlayerState->GetCurrentRoomPosition().Y) + ")";
 	TextBlock_GameData_RoomPosition->SetText(FText::FromString(Str));
 }
 

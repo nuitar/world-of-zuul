@@ -27,6 +27,7 @@ public:
 	void GenerateMap(const TArray<FWOZGameRoomData>& RoomData);
 
 	AWOZGameRoom* GetRoomByPosition(const FIntPoint& Position);
+	const TArray<AWOZGameRoom*>& GetAllRooms() const { return Rooms; }
 	
 protected:
 

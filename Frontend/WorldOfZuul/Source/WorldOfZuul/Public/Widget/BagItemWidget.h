@@ -42,6 +42,9 @@ protected:
 private:
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> TextBlock_Item;
+	
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UTextBlock> TextBlock_Description;
 
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UButton> Button_Func;

@@ -5,6 +5,10 @@
 
 FString UWOZGameplayData::GetItemNameString(EWOZGameItem::Type ItemEnum) const
 {
+	if (ItemEnum == EWOZGameItem::None)
+	{
+		return TEXT("无效的物品");
+	}
 	return Items.FindRef(ItemEnum).Name.ToString();
 }
 
@@ -57,9 +61,9 @@ FString UWOZGameplayData::ItemCounterToString(const TMap<EWOZGameItem::Type, int
 	{
 		RetMsg += FString::FromInt(Tuple.Value);
 		RetMsg += Items.FindRef(Tuple.Key).Quantifier.ToString();
-		RetMsg += GetItemNameString(Tuple.Key) + "\n";
+		RetMsg += GetItemNameString(Tuple.Key) + ",\n";
 	}
-	RetMsg.RemoveFromEnd("\n");
+	RetMsg.RemoveFromEnd(",\n");
 
 	return RetMsg;
 }
@@ -71,6 +75,19 @@ FString UWOZGameplayData::GetStringCommand(EWOZCommand::Type Command)
 		if (StringCommand.Value == Command)
 		{
 			return StringCommand.Key;
+		}
+	}
+
+	return FString();
+}
+
+FString UWOZGameplayData::GetStringDirection(EWOZGameRoomDirection::Type Direction)
+{
+	for (const auto& StringDirection : StringDirections)
+	{
+		if (StringDirection.Value == Direction)
+		{
+			return StringDirection.Key;
 		}
 	}
 
@@ -177,6 +194,7 @@ bool UWOZGameplayData::IsUseableItem(EWOZGameItem::Type Item) const
 	switch (ItemType)
 	{
 	case EWOZGameItemType::Key:
+	case EWOZGameItemType::RoomInteractive:
 		return true;
 		
 	default: ;

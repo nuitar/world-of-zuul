@@ -8,6 +8,7 @@
 #include "WOZGameRoom.generated.h"
 
 
+class AWOZPlayerController;
 class UWOZGameplayData;
 class AWOZGameItem;
 class UBoxComponent;
@@ -21,21 +22,59 @@ class WORLDOFZUUL_API AWOZGameRoom : public AActor
 public:
 	AWOZGameRoom();
 
-	static AWOZGameRoom* CreateRoom(UObject* WorldContext, const FIntPoint& Pos, UWOZGameplayData* GameplayData);
-	static AWOZGameRoom* CreateRoom(UObject* WorldContext, FWOZGameRoomData* InRoomData, UWOZGameplayData* GameplayData);
+public:
+	static AWOZGameRoom* CreateRoom(UObject* WorldContext, const FWOZGameRoomInfo& Info, const FIntPoint& Pos, UWOZGameplayData* GameplayData);
+	static AWOZGameRoom* CreateRoom(UObject* WorldContext, const FWOZGameRoomData& InRoomData, UWOZGameplayData* GameplayData);
 
+	void SetRoomInfo(const FWOZGameRoomInfo& Info);
+	void InitDoors(const TArray<FIntPoint>& MapRoomPos);
+	
 	void AddNewItem(TEnumAsByte<EWOZGameItem::Type> ItemEnum);
-	void AddNewItems(const TArray<TEnumAsByte<EWOZGameItem::Type>>& ItemEnums);
+	void AddNewItems(const TArray<TEnumAsByte<EWOZGameItem::Type>>& InItemEnums);
+	void RemoveItem(AWOZGameItem* ItemToRemove);
 	void RemoveItems(const TArray<AWOZGameItem*>& ItemsToRemove);
 	void ReplaceItem(AWOZGameItem* OldItem, EWOZGameItem::Type NewItemEnum);
 
-	const TArray<AWOZGameItem*> GetAllItems() const { return Items; }
+	const TArray<AWOZGameItem*>& GetAllItems() const { return Items; }
+	TArray<EWOZGameItem::Type> GetAllItemEnums() const;
 	
+	const FIntPoint& GetPosition() const { return Position; }
+	const FWOZGameRoomInfo& GetRoomInfo() const { return RoomInfo; }
 	FWOZGameRoomData GetRoomData();
 
 protected:
 
 private:
+	UFUNCTION()
+	void OnDoorEastOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+
+	UFUNCTION()
+	void OnDoorSouthOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+
+	UFUNCTION()
+	void OnDoorWestOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+
+	UFUNCTION()
+	void OnDoorNorthOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+
+	void DoorOverlap(AActor* Actor, EWOZGameRoomDirection::Type Direction);
+	
+private:
+	UPROPERTY(VisibleAnywhere)
+	TObjectPtr<UStaticMeshComponent> Floor;
+
+	UPROPERTY(VisibleAnywhere)
+	TObjectPtr<UBoxComponent> Door_East;
+
+	UPROPERTY(VisibleAnywhere)
+	TObjectPtr<UBoxComponent> Door_South;
+
+	UPROPERTY(VisibleAnywhere)
+	TObjectPtr<UBoxComponent> Door_West;
+	
+	UPROPERTY(VisibleAnywhere)
+	TObjectPtr<UBoxComponent> Door_North;
+	
 	UPROPERTY()
 	TObjectPtr<UWOZGameplayData> GameplayData;
 	
@@ -43,4 +82,9 @@ private:
 	
 	UPROPERTY()
 	TArray<AWOZGameItem*> Items;
+	
+	UPROPERTY()
+	TObjectPtr<UMaterialInstanceDynamic> MaterialInstanceDynamic;
+	
+	FWOZGameRoomInfo RoomInfo;
 };

@@ -49,6 +49,8 @@ namespace EWOZGameItem
 		EmptyCopperTreasureBox,
 		
 		MagicCookie,
+
+		TeleportDoor,
 		
 		MAX UMETA(Hidden),
 	};
@@ -63,7 +65,8 @@ namespace EWOZGameItemType
 		Key,
 		TreasureBox,
 		EmptyTreasureBox,
-		Food
+		Food,
+		RoomInteractive
 	};
 }
 
@@ -92,6 +95,9 @@ struct FWOZGameItemInfo
 	FText Name;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FText Description;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FText Quantifier;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -109,6 +115,9 @@ struct FWOZGameItemInfo
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TEnumAsByte<EWOZCommand::Type> InBagDefaultCommand = EWOZCommand::None;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float Scale = 1.f;
+
 	/*UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int32 Priority = 0;
 
@@ -119,10 +128,28 @@ struct FWOZGameItemInfo
 };
 
 USTRUCT(BlueprintType)
+struct FWOZGameRoomInfo
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FText Name;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FText Description;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TObjectPtr<UTexture> Floor;
+};
+
+USTRUCT(BlueprintType)
 struct FWOZGameRoomData
 {
 	GENERATED_BODY()
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FWOZGameRoomInfo Info;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FIntPoint Position;
 
@@ -158,6 +185,7 @@ public:
 	TMap<EWOZGameItem::Type, int32> GetItemCounterMap(const TArray<TEnumAsByte<EWOZGameItem::Type>>& ItemEnums);
 	FString ItemCounterToString(const TMap<EWOZGameItem::Type, int32>& Counter) const;
 	FString GetStringCommand(EWOZCommand::Type Command);
+	FString GetStringDirection(EWOZGameRoomDirection::Type Direction);
 
 	TArray<TEnumAsByte<EWOZGameItem::Type>> GetTreasureFromBox(EWOZGameItem::Type TreasureBox) const;
 	int32 GetScoreFromBox(EWOZGameItem::Type TreasureBox) const;
@@ -175,6 +203,9 @@ public:
 	UPROPERTY(EditAnywhere, Category = "WOZ|Command")
 	TMap<TEnumAsByte<EWOZCommand::Type>, FText> CommandNames;
 
+	UPROPERTY(EditAnywhere, Category = "WOZ|Player")
+	float PlayerSize = 100.f;
+	
 	UPROPERTY(EditAnywhere, Category = "WOZ|Item")
 	float ItemSize = 64.f;
 	
@@ -189,6 +220,9 @@ public:
 	
 	UPROPERTY(EditAnywhere, Category = "WOZ|Room")
 	float RoomSize = 1000.f;
+
+	UPROPERTY(EditAnywhere, Category = "WOZ|Room")
+	TArray<FWOZGameRoomInfo> RoomInfos;
 	
 	UPROPERTY(EditAnywhere, Category = "WOZ|Room")
 	TMap<FString, TEnumAsByte<EWOZGameRoomDirection::Type>> StringDirections;
@@ -228,82 +262,4 @@ public:
 
 	UPROPERTY(EditAnywhere, Category = "WOZ|MagicCookie")
 	int32 MagicCookieMaxWeightAddCount = 10;
-	
-	UPROPERTY(EditAnywhere, Category = "WOZ|Message")
-	FText CommandInvalidMsg;
-	
-	UPROPERTY(EditAnywhere, Category = "WOZ|Message|Go")
-	FText CommandGoSuccessfulPrefixMsg;
-	
-	UPROPERTY(EditAnywhere, Category = "WOZ|Message|Go")
-	FText CommandGoNoDirectionMsg;
-	
-	UPROPERTY(EditAnywhere, Category = "WOZ|Message|Go")
-	FText CommandGoInvalidRoomMsg;
-
-	UPROPERTY(EditAnywhere, Category = "WOZ|Message|Back")
-	FText CommandBackSuccessfulPrefixMsg;
-
-	UPROPERTY(EditAnywhere, Category = "WOZ|Message|Back")
-	FText CommandBackFromStartMsg;
-	
-	UPROPERTY(EditAnywhere, Category = "WOZ|Message|Take")
-	FText CommandTakeSuccessfulPrefixMsg;
-	
-	UPROPERTY(EditAnywhere, Category = "WOZ|Message|Take")
-	FText CommandTakeInvalidTypePrefixMsg;
-
-	UPROPERTY(EditAnywhere, Category = "WOZ|Message|Take")
-	FText CommandTakeNearNoItemMsg;
-
-	UPROPERTY(EditAnywhere, Category = "WOZ|Message|Take")
-	FText CommandTakeRoomNoItemMsg;
-	
-	UPROPERTY(EditAnywhere, Category = "WOZ|Message|Take")
-	FText CommandTakeOutWeightMsg;
-
-	UPROPERTY(EditAnywhere, Category = "WOZ|Message|Open")
-	FText CommandOpenInvalidTypeMsg;
-
-	UPROPERTY(EditAnywhere, Category = "WOZ|Message|Open")
-	FText CommandOpenNearNoItemMsg;
-
-	UPROPERTY(EditAnywhere, Category = "WOZ|Message|Open")
-	FText CommandOpenRoomNoItemMsg;
-
-	UPROPERTY(EditAnywhere, Category = "WOZ|Message|Use")
-	FText CommandUseCommandNoItemMsg;
-
-	UPROPERTY(EditAnywhere, Category = "WOZ|Message|Use")
-	FText CommandUseBagNoItemMsg;
-	
-	UPROPERTY(EditAnywhere, Category = "WOZ|Message|Use")
-	FText CommandUseInvalidTypeMsg;
-	
-	UPROPERTY(EditAnywhere, Category = "WOZ|Message|Drop")
-	FText CommandDropCommandNoItemMsg;
-	
-	UPROPERTY(EditAnywhere, Category = "WOZ|Message|Drop")
-	FText CommandDropBagNoItemMsg;
-
-	UPROPERTY(EditAnywhere, Category = "WOZ|Message|Drop")
-	FText CommandDropSuccessfulPrefixMsg;
-
-	UPROPERTY(EditAnywhere, Category = "WOZ|Message|Eat")
-	FText CommandEatCommandNoItemMsg;
-	
-	UPROPERTY(EditAnywhere, Category = "WOZ|Message|Eat")
-	FText CommandEatBagNoItemMsg;
-
-	UPROPERTY(EditAnywhere, Category = "WOZ|Message|Eat")
-	FText CommandEatInvalidTypeMsg;
-	
-	UPROPERTY(EditAnywhere, Category = "WOZ|Message|Eat")
-	FText CommandEatSuccessfulPrefixMsg;
-
-	UPROPERTY(EditAnywhere, Category = "WOZ|Message|Look")
-	FText CommandLookRoomNoItemMsg;
-
-	UPROPERTY(EditAnywhere, Category = "WOZ|Message|Item")
-	FText CommandItemBagNoItemMsg;
 };

@@ -5,11 +5,13 @@
 #include "EnhancedInputSubsystems.h"
 #include "InputActionValue.h"
 #include "Blueprint/UserWidget.h"
+#include "Components/CapsuleComponent.h"
 #include "Engine/SceneCapture2D.h"
 #include "Gameplay/WOZGameItem.h"
 #include "Gameplay/WOZGameMode.h"
 #include "Gameplay/WOZGameplayData.h"
 #include "Gameplay/WOZGameRoom.h"
+#include "Gameplay/WOZPlayerCharacter.h"
 #include "Gameplay/WOZPlayerState.h"
 #include "Kismet/GameplayStatics.h"
 #include "Widget/OverlayWidget.h"
@@ -64,6 +66,12 @@ void AWOZPlayerController::OnPawnBeginOverlap(AActor* OverlappedActor, AActor* O
 	if (AWOZGameItem* GameItem = Cast<AWOZGameItem>(OtherActor))
 	{
 		CurrentOverlappingGameItem = GameItem;
+
+		if (GameItem->GetItemEnum() == EWOZGameItem::TeleportDoor)
+		{
+			
+			ExecuteCommand_ItemTarget(EWOZCommand::Use, EWOZGameItem::TeleportDoor);
+		}
 	}
 }
 
@@ -97,6 +105,14 @@ void AWOZPlayerController::Interact()
 		if (StringCommand.Value == ItemInfo.InMapDefaultCommand)
 		{
 			ExecuteCommand(FString(StringCommand.Key));
+
+			//刷新碰撞
+			if (AWOZPlayerCharacter* PlayerCharacter = Cast<AWOZPlayerCharacter>(GetPawn()))
+			{
+				PlayerCharacter->GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+				PlayerCharacter->GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+			}
+			
 			return;
 		}
 	}
@@ -124,7 +140,7 @@ void AWOZPlayerController::ExecuteCommand_Implementation(const FString& CommandS
 
 	if (!GameplayData->StringCommands.Contains(LeftStr.ToLower()))
 	{
-		Msg.Reply = GameplayData->CommandInvalidMsg;
+		Msg.Reply = FText::FromString(TEXT("你输入了一个无效的指令。"));
 		ReplyCommand(Msg);
 		return;
 	}
@@ -175,6 +191,37 @@ void AWOZPlayerController::ExecuteCommand_Implementation(const FString& CommandS
 	ReplyCommand(Msg);
 }
 
+void AWOZPlayerController::ExecuteCommand_ItemTarget(TEnumAsByte<EWOZCommand::Type> Command, TEnumAsByte<EWOZGameItem::Type> Target)
+{
+	FString CommandString = GameplayData->GetStringCommand(Command);
+	
+	if (Target != EWOZGameItem::None)
+	{
+		CommandString += " " + GameplayData->GetItemDefaultCommandString(Target);
+	}
+
+	ExecuteCommand(CommandString);
+}
+
+void AWOZPlayerController::ExecuteCommand_DirectionTarget(TEnumAsByte<EWOZCommand::Type> Command, TEnumAsByte<EWOZGameRoomDirection::Type> Target)
+{
+	FString CommandString = GameplayData->GetStringCommand(Command);
+	
+	if (Target != EWOZGameItem::None)
+	{
+		for (const auto& StringDirection : GameplayData->StringDirections)
+		{
+			if (StringDirection.Value == Target)
+			{
+				CommandString += " " + StringDirection.Key;
+				break;
+			}
+		}
+	}
+	
+	ExecuteCommand(CommandString);
+}
+
 void AWOZPlayerController::ReplyCommand_Implementation(const FWOZCommandReplyMsg& Msg)
 {
 	check(OverlayWidget);
@@ -192,27 +239,37 @@ FText AWOZPlayerController::CommandGo(const FString& Target)
 	EWOZGameRoomDirection::Type Direction = GameplayData->StringDirections.FindRef(Target);
 	if (Direction == EWOZGameRoomDirection::None)
 	{
-		return GameplayData->CommandGoNoDirectionMsg;
+		if (Target == GameplayData->GetStringCommand(EWOZCommand::Back))
+		{
+			return CommandBack();
+		}
+		
+		return FText::FromString(TEXT("你并未指定有效的方向。"));
 	}
 
 	FIntPoint NewPosition = WOZPlayerState->GetCurrentRoomPosition();
+	FVector NextRoomOffset = FVector::ZeroVector;
 
 	switch (Direction)
 	{
 	case EWOZGameRoomDirection::East:
 		NewPosition.Y++;
+		NextRoomOffset.Y = -GameplayData->RoomSize / 2.5f;
 		break;
 
 	case EWOZGameRoomDirection::West:
 		NewPosition.Y--;
+		NextRoomOffset.Y = GameplayData->RoomSize / 2.5f;
 		break;
 		
 	case EWOZGameRoomDirection::North:
 		NewPosition.X++;
+		NextRoomOffset.X = -GameplayData->RoomSize / 2.5f;
 		break;
 		
 	case EWOZGameRoomDirection::South:
 		NewPosition.X--;
+		NextRoomOffset.X = GameplayData->RoomSize / 2.5f;
 		break;
 		
 	default: ;
@@ -222,18 +279,16 @@ FText AWOZPlayerController::CommandGo(const FString& Target)
 	AWOZGameRoom* Room = GameMode->GetRoomByPosition(NewPosition);
 	if (!Room)
 	{
-		return GameplayData->CommandGoInvalidRoomMsg;
+		return FText::FromString(TEXT("目标方向不存在有效的房间。"));
 	}
 	
 	WOZPlayerState->PushRoomPosition(NewPosition);
-	const FVector& RoomLocation = Room->GetActorLocation();
-	const float PrevCaptureZ = SceneCapture2D->GetActorLocation().Z;
+	GotoRoom(Room);
 
-	GetPawn()->SetActorLocation(FVector(RoomLocation.X, RoomLocation.Y, 92.0));
-	SceneCapture2D->SetActorLocation(FVector(RoomLocation.X, RoomLocation.Y, PrevCaptureZ));
-
-	FString Str = GameplayData->CommandGoSuccessfulPrefixMsg.ToString();
-	Str += FString::FromInt(Room->GetRoomData().Position.X) + " , " + FString::FromInt(Room->GetRoomData().Position.Y);
+	GetPawn()->AddActorWorldOffset(NextRoomOffset);
+	
+	FString Str = TEXT("你来到了房间");
+	Str += "(" + FString::FromInt(Room->GetRoomData().Position.X) + " , " + FString::FromInt(Room->GetRoomData().Position.Y) + ")";
 	Str += TEXT("。");
 	return FText::FromString(Str);
 }
@@ -262,7 +317,7 @@ FText AWOZPlayerController::CommandTake(const FString& Target)
 			}
 			else
 			{
-				FString Str = GameplayData->CommandTakeInvalidTypePrefixMsg.ToString();
+				FString Str = TEXT("你无法拾取");
 				Str += GameplayData->GetItemNameString(CurrentOverlappingGameItem->GetItemEnum());
 				Str += TEXT("。");
 				return FText::FromString(Str);
@@ -270,7 +325,7 @@ FText AWOZPlayerController::CommandTake(const FString& Target)
 		}
 		else
 		{
-			return GameplayData->CommandTakeNearNoItemMsg;
+			return FText::FromString(TEXT("你的身边没有可拾取的物品。"));
 		}
 	}
 	else
@@ -289,7 +344,7 @@ FText AWOZPlayerController::CommandTake(const FString& Target)
 
 			if (Items.IsEmpty())
 			{
-				return GameplayData->CommandTakeRoomNoItemMsg;
+				return FText::FromString(TEXT("房间中没有可拾取的物品。"));
 			}
 		}
 		//拾取房间中的目标物品(最近的一个)
@@ -299,17 +354,9 @@ FText AWOZPlayerController::CommandTake(const FString& Target)
 			
 			if (!GameplayData->IsTakeableItem(ItemEnum))
 			{
-				FString Str = GameplayData->CommandTakeInvalidTypePrefixMsg.ToString();
 				const FString& Name = GameplayData->GetItemNameString(ItemEnum);
-				if (GameplayData->Items.FindRef(ItemEnum).Name.ToString().IsEmpty())
-				{
-					Str += TEXT("一个不存在的物品");
-				}
-				else
-				{
-					Str += Name;
-				}
-				Str += TEXT("。");
+				FString Str = TEXT("你无法拾取");
+				Str += Name + TEXT("。");
 				return FText::FromString(Str);
 			}
 			
@@ -322,7 +369,10 @@ FText AWOZPlayerController::CommandTake(const FString& Target)
 			}
 			else
 			{
-				return GameplayData->CommandTakeRoomNoItemMsg;
+				FString Str = TEXT("房间中没有");
+				const FString& Name = GameplayData->GetItemNameString(ItemEnum);
+				Str += Name + TEXT("。");
+				return FText::FromString(Str);
 			}
 		}
 	}
@@ -337,14 +387,14 @@ FText AWOZPlayerController::CommandTake(const FString& Target)
 	
 	if (WOZPlayerState->GetCurrentWeight(GameplayData) + WeightSum > WOZPlayerState->MaxWeight)
 	{
-		return GameplayData->CommandTakeOutWeightMsg;
+		return FText::FromString(TEXT("你无法携带超出最大负重的物品。"));
 	}
 	
 	WOZPlayerState->AddBagItems(ItemEnums);
 	Room->RemoveItems(Items);
 
 	const TMap<EWOZGameItem::Type, int32>& Counter = GameplayData->GetItemCounterMap(ItemEnums);
-	const FString& RetMsg = TEXT("你拾取了:\n") + GameplayData->ItemCounterToString(Counter);
+	const FString& RetMsg = TEXT("你拾取了:\n") + GameplayData->ItemCounterToString(Counter) + TEXT("。");
 	
 	return FText::FromString(RetMsg);
 }
@@ -371,12 +421,15 @@ FText AWOZPlayerController::CommandOpen(const FString& Target)
 			}
 			else
 			{
-				return GameplayData->CommandOpenInvalidTypeMsg;
+				FString Str = TEXT("你无法对");
+				const FString& Name = GameplayData->GetItemNameString(CurrentOverlappingGameItem->GetItemEnum());
+				Str += Name + TEXT("进行开启操作。");
+				return FText::FromString(Str);
 			}
 		}
 		else
 		{
-			return GameplayData->CommandOpenNearNoItemMsg;
+			return FText::FromString(TEXT("房间内没有可以进行开启操作的事物"));
 		}
 	}
 	else
@@ -385,14 +438,19 @@ FText AWOZPlayerController::CommandOpen(const FString& Target)
 
 		if (!GameplayData->IsOpenableItem(ItemEnum))
 		{
-			return GameplayData->CommandOpenInvalidTypeMsg;
+			FString Str = TEXT("你无法对");
+			const FString& Name = GameplayData->GetItemNameString(ItemEnum);
+			Str += Name + TEXT("进行开启操作。");
+			return FText::FromString(Str);
 		}
 			
 		Item = GetNearestItem(ItemEnum, Room);
 
 		if (!Item)
 		{
-			return GameplayData->CommandOpenRoomNoItemMsg;
+			FString Str = TEXT("房间中没有");
+			const FString& Name = GameplayData->GetItemNameString(ItemEnum);
+			Str += Name + TEXT("。");
 		}
 	}
 
@@ -438,13 +496,14 @@ FText AWOZPlayerController::CommandOpen(const FString& Target)
 		WOZPlayerState->RemoveBagItem(ItemToUse);
 		
 		const FString& CounterStr = GameplayData->ItemCounterToString(GameplayData->GetItemCounterMap(Treasure));
-		FString Str = TEXT("你使用") + GameplayData->GetItemNameString(ItemToUse) + TEXT("开启了") + GameplayData->GetItemNameString(ItemEnum);
+		FString Str = TEXT("你使用") + GameplayData->GetItemNameString(ItemToUse) + TEXT("开启了") + GameplayData->GetItemNameString(ItemEnum) + TEXT("。");
 		Str +=  TEXT("\n你得到了:\n");
 		Str += FString::FromInt(Score) + TEXT("个得分");
 		if (!CounterStr.IsEmpty())
 		{
 			Str += "\n" + CounterStr;
 		}
+		TEXT("。");
 		
 		return FText::FromString(Str);
 	}
@@ -461,7 +520,7 @@ FText AWOZPlayerController::CommandBack()
 
 	if (WOZPlayerState->GetRoomPositionHistory().Num() == 1)
 	{
-		return GameplayData->CommandBackFromStartMsg;
+		return FText::FromString(TEXT("你没有用于返回上一个房间的记录。"));
 	}
 
 	WOZPlayerState->PopRoomPosition();
@@ -470,8 +529,8 @@ FText AWOZPlayerController::CommandBack()
 
 	GotoRoom(Room);
 	
-	FString Str = GameplayData->CommandBackSuccessfulPrefixMsg.ToString();
-	Str += FString::FromInt(Room->GetRoomData().Position.X) + " , " + FString::FromInt(Room->GetRoomData().Position.Y);
+	FString Str = TEXT("你回到了房间");
+	Str += "(" + FString::FromInt(Room->GetRoomData().Position.X) + " , " + FString::FromInt(Room->GetRoomData().Position.Y) + ")";
 	Str += TEXT("。");
 	return FText::FromString(Str);
 }
@@ -488,7 +547,24 @@ FText AWOZPlayerController::CommandUse(const FString& Target)
 
 	if (Target.IsEmpty())
 	{
-		return GameplayData->CommandUseCommandNoItemMsg;
+		if (CurrentOverlappingGameItem)
+		{
+			if (GameplayData->IsUseableItem(CurrentOverlappingGameItem->GetItemEnum()))
+			{
+				ItemEnum = CurrentOverlappingGameItem->GetItemEnum();
+			}
+			else
+			{
+				FString Str = TEXT("你无法使用");
+				Str += GameplayData->GetItemNameString(CurrentOverlappingGameItem->GetItemEnum());        
+				Str += TEXT("。");
+				return FText::FromString(Str);
+			}
+		}
+		else
+		{
+			return FText::FromString(TEXT("你的附近没有能够使用的事物。"));
+		}
 	}
 	else
 	{
@@ -496,15 +572,90 @@ FText AWOZPlayerController::CommandUse(const FString& Target)
 
 		if (!GameplayData->IsUseableItem(ItemEnum))
 		{
-			return GameplayData->CommandUseInvalidTypeMsg;
-		}
-		
-		if (!WOZPlayerState->GetBagItems().Contains(ItemEnum))
-		{
-			return GameplayData->CommandUseBagNoItemMsg;
+			FString Str = TEXT("你无法使用");
+			Str += GameplayData->GetItemNameString(ItemEnum);        
+			Str += TEXT("。");
+			return FText::FromString(Str);
 		}
 	}
 
+	//如果是钥匙，需要进行较为复杂的判断和预处理
+	if (GameplayData->GetItemType(ItemEnum) == EWOZGameItemType::Key)
+	{
+		//判断地图中是否有对应的宝箱
+		bool bRoomHasTreasureBox = false;
+		EWOZGameItem::Type NeededTreasureBox = EWOZGameItem::None;
+		switch (ItemEnum)
+		{
+		case EWOZGameItem::GoldenKey:
+			NeededTreasureBox = EWOZGameItem::GoldenTreasureBox;
+			break;
+				
+		case EWOZGameItem::SilverKey:
+			NeededTreasureBox = EWOZGameItem::SilverTreasureBox;
+			break;
+				
+		case EWOZGameItem::CopperKey:
+			NeededTreasureBox = EWOZGameItem::CopperTreasureBox;
+			break;
+				
+		default: ;
+		}
+		
+		bRoomHasTreasureBox = Room->GetRoomData().Items.Contains(NeededTreasureBox);
+		if (!bRoomHasTreasureBox)
+		{
+			FString Str = TEXT("房间中没有");
+			Str += GameplayData->GetItemNameString(NeededTreasureBox);        
+			Str += TEXT("。");
+			return FText::FromString(Str);
+		}
+
+		//判断是否要从地图中拿取钥匙
+		bool bTakeKeyFromRoom = false;
+		//未指定目标，则表示使用当前重叠的物品，则需要拿取
+		if (Target.IsEmpty())
+		{
+			bTakeKeyFromRoom = true;
+		}
+		//指定了目标，如果背包里没有这个物品，则需要拿取
+		else
+		{
+			bTakeKeyFromRoom = !WOZPlayerState->GetBagItems().Contains(ItemEnum);
+		}
+
+		//需要从地图中拿，但地图中也没有钥匙，则返回错误
+		if (bTakeKeyFromRoom && !Room->GetAllItemEnums().Contains(ItemEnum))
+		{
+			FString Str = TEXT("房间和你的背包中均没有");
+			Str += GameplayData->GetItemNameString(ItemEnum);        
+			Str += TEXT("。");
+			return FText::FromString(Str);
+		}
+
+		//从房间里拿取并放到背包里
+		if (bTakeKeyFromRoom)
+		{
+			WOZPlayerState->AddBagItem(ItemEnum);
+
+			if (AWOZGameItem* Item = GetNearestItem(ItemEnum, Room))
+			{
+				Room->RemoveItem(Item);
+			}
+		}
+	}
+	else if (GameplayData->GetItemType(ItemEnum) == EWOZGameItemType::RoomInteractive)
+	{
+		if (!Room->GetAllItemEnums().Contains(ItemEnum))
+		{
+			FString Str = TEXT("房间中没有");
+			Str += GameplayData->GetItemNameString(ItemEnum);        
+			Str += TEXT("。");
+			return FText::FromString(Str);
+		}
+	}
+	
+	//如果是钥匙
 	if (GameplayData->GetItemType(ItemEnum) == EWOZGameItemType::Key)
 	{
 		switch (ItemEnum)
@@ -522,6 +673,16 @@ FText AWOZPlayerController::CommandUse(const FString& Target)
 		}
 	}
 
+	if (GameplayData->GetItemType(ItemEnum) == EWOZGameItemType::RoomInteractive)
+	{
+		switch (ItemEnum)
+		{
+		case EWOZGameItem::TeleportDoor:
+			return TeleportRandom();
+			default: ;
+		}
+	}
+	
 	return FText();
 }
 
@@ -537,13 +698,13 @@ FText AWOZPlayerController::CommandDrop(const FString& Target)
 
 	if (Target.IsEmpty())
 	{
-		return GameplayData->CommandDropCommandNoItemMsg;
+		return FText::FromString(TEXT("你并未指定需要丢弃的物品。"));
 	}
 	if (Target.ToLower() == "all")
 	{
 		if (WOZPlayerState->GetBagItems().IsEmpty())
 		{
-			return GameplayData->CommandDropBagNoItemMsg;
+			return FText::FromString(TEXT("你的背包是空的。"));
 		}
 
 		ItemEnums = WOZPlayerState->GetBagItems();
@@ -557,8 +718,8 @@ FText AWOZPlayerController::CommandDrop(const FString& Target)
 	Room->AddNewItems(ItemEnums);
 
 	const FString& CounterStr = GameplayData->ItemCounterToString(GameplayData->GetItemCounterMap(ItemEnums));
-	FString Str = GameplayData->CommandDropSuccessfulPrefixMsg.ToString();
-	Str += "\n" + CounterStr;
+	FString Str = TEXT("你丢弃了:");
+	Str += "\n" + CounterStr + TEXT("。");
 
 	return FText::FromString(Str);
 }
@@ -575,26 +736,74 @@ FText AWOZPlayerController::CommandEat(const FString& Target)
 
 	if (Target.IsEmpty())
 	{
-		return GameplayData->CommandEatCommandNoItemMsg;
+		if (CurrentOverlappingGameItem)
+		{
+			if (GameplayData->IsEatableItem(CurrentOverlappingGameItem->GetItemEnum()))
+			{
+				ItemEnum = CurrentOverlappingGameItem->GetItemEnum();
+			}
+			else
+			{
+				FString Str = TEXT("你无法食用");
+				Str += GameplayData->GetItemNameString(CurrentOverlappingGameItem->GetItemEnum());        
+				Str += TEXT("。");
+				return FText::FromString(Str);
+			}
+		}
+		else
+		{
+			return FText::FromString(TEXT("你的附近没有能够食用的事物。"));
+		}
 	}
 	else
 	{
 		ItemEnum = GameplayData->GetItemByString(Target);
+		
+		if (!GameplayData->IsEatableItem(ItemEnum))
+		{
+			FString Str = TEXT("你无法食用");
+			Str += GameplayData->GetItemNameString(ItemEnum);        
+			Str += TEXT("。");
+			return FText::FromString(Str);
+		}
 	}
 
-	if (!GameplayData->IsEatableItem(ItemEnum))
+	//判断是否要从地图中寻找食物
+	bool bTakeFromRoom = false;
+	//未指定目标，则表示使用当前重叠的物品，则需要拿取
+	if (Target.IsEmpty())
 	{
-		return GameplayData->CommandEatInvalidTypeMsg;
+		bTakeFromRoom = true;
+	}
+	//指定了目标，如果背包里没有这个物品，则需要拿取
+	else
+	{
+		bTakeFromRoom = !WOZPlayerState->GetBagItems().Contains(ItemEnum);
 	}
 
-	if (!WOZPlayerState->GetBagItems().Contains(ItemEnum))
+	//需要从地图中拿，但地图中也没有，则返回错误
+	if (bTakeFromRoom && !Room->GetAllItemEnums().Contains(ItemEnum))
 	{
-		return GameplayData->CommandEatBagNoItemMsg;
+		FString Str = TEXT("房间和你的背包中均没有");
+		Str += GameplayData->GetItemNameString(ItemEnum);        
+		Str += TEXT("。");
+		return FText::FromString(Str);
+	}
+
+	//从房间里拿取并放到背包里
+	if (bTakeFromRoom)
+	{
+		WOZPlayerState->AddBagItem(ItemEnum);
+
+		if (AWOZGameItem* Item = GetNearestItem(ItemEnum, Room))
+		{
+			Room->RemoveItem(Item);
+		}
 	}
 
 	WOZPlayerState->RemoveBagItem(ItemEnum);
 	
-	FString Str = GameplayData->CommandEatSuccessfulPrefixMsg.ToString() + GameplayData->GetItemNameString(ItemEnum) + TEXT("。");
+	FString Str = TEXT("你吃掉了") + GameplayData->GetItemNameString(ItemEnum) + TEXT("。");
 
 	//根据食物的类型决定效果
 	switch (ItemEnum)
@@ -625,17 +834,33 @@ FText AWOZPlayerController::CommandLook()
 	}
 	const FString& CounterStr = GameplayData->ItemCounterToString(GameplayData->GetItemCounterMap(ItemEnums));
 
-	FString Str = TEXT("你所在的房间位于:");
-	Str += FString::FromInt(Room->GetRoomData().Position.X) + " , " + FString::FromInt(Room->GetRoomData().Position.Y);
+	FString Str = TEXT("你位于");
+	
+	Str += "(" + FString::FromInt(Room->GetRoomData().Position.X) + " , " + FString::FromInt(Room->GetRoomData().Position.Y) + ")";
+	Str += TEXT("的");
+	if (!Room->GetRoomInfo().Name.IsEmpty())
+	{
+		Str += Room->GetRoomInfo().Name.ToString();
+		Str += TEXT("。");
+	}
+	else
+	{
+		Str += TEXT("房间");
+	}
 
+	if (!Room->GetRoomInfo().Description.IsEmpty())
+	{
+		Str += TEXT("\n") + Room->GetRoomInfo().Description.ToString();
+	}
+	
 	if (ItemEnums.IsEmpty())
 	{
-		Str += "\n" + GameplayData->CommandLookRoomNoItemMsg.ToString();
+		Str += TEXT("\n房间内空无一物。");
 	}
 	else
 	{
 		Str += TEXT("\n房间内存在物品:\n");
-		Str += CounterStr;
+		Str += CounterStr + TEXT("。");
 	}
 
 	return FText::FromString(Str);
@@ -653,12 +878,12 @@ FText AWOZPlayerController::CommandItem()
 	
 	if (ItemEnums.IsEmpty())
 	{
-		return GameplayData->CommandItemBagNoItemMsg;
+		return FText::FromString(TEXT("你的背包中没有物品。"));
 	}
 	
 	const FString& CounterStr = GameplayData->ItemCounterToString(GameplayData->GetItemCounterMap(ItemEnums));
-	FString Str = TEXT("\n背包中的物品:\n");
-	Str += CounterStr;
+	FString Str = TEXT("你的背包中存在物品:\n");
+	Str += CounterStr + TEXT("。");
 	Str += TEXT("\n总重量: ") + FString::FromInt(WOZPlayerState->GetCurrentWeight(GameplayData)) + TEXT("。");
 
 	return FText::FromString(Str);
@@ -666,7 +891,7 @@ FText AWOZPlayerController::CommandItem()
 
 AWOZGameItem* AWOZPlayerController::GetNearestItem(EWOZGameItem::Type ItemEnum, AWOZGameRoom* Room) const
 {
-	float MinDis = INT32_MAX;
+	float MinDis = (float)INT32_MAX;
 	AWOZGameItem* NearestItem = nullptr;
 	for (AWOZGameItem* _Item_ : Room->GetAllItems())
 	{
@@ -684,8 +909,28 @@ AWOZGameItem* AWOZPlayerController::GetNearestItem(EWOZGameItem::Type ItemEnum, 
 void AWOZPlayerController::GotoRoom(AWOZGameRoom* Room)
 {
 	const FVector& RoomLocation = Room->GetActorLocation();
-	const float PrevCaptureZ = SceneCapture2D->GetActorLocation().Z;
+	const float CaptureZ = GameplayData->RoomSize / 2.f;
 
 	GetPawn()->SetActorLocation(FVector(RoomLocation.X, RoomLocation.Y, 92.0));
-	SceneCapture2D->SetActorLocation(FVector(RoomLocation.X, RoomLocation.Y, PrevCaptureZ));
+	SceneCapture2D->SetActorLocation(FVector(RoomLocation.X, RoomLocation.Y, CaptureZ));
+}
+
+FText AWOZPlayerController::TeleportRandom()
+{
+	check(GameplayData && WOZPlayerState);
+	
+	AWOZGameMode* GameMode = Cast<AWOZGameMode>(GetWorld()->GetAuthGameMode());
+	check(GameMode);
+	
+	const TArray<AWOZGameRoom*> Rooms = GameMode->GetAllRooms();
+	const int32 RandIndex = FMath::RandRange(0, Rooms.Num() - 1);
+
+	WOZPlayerState->PushRoomPosition(Rooms[RandIndex]->GetPosition());
+	GotoRoom(Rooms[RandIndex]);
+
+	FString Str = TEXT("你被传送门传送到了房间");
+	Str += "(" + FString::FromInt(Rooms[RandIndex]->GetPosition().X) + " , " + FString::FromInt(Rooms[RandIndex]->GetPosition().Y) + ")";
+	Str += TEXT("。");
+
+	return FText::FromString(Str);
 }

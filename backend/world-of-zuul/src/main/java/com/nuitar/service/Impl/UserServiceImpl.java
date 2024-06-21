@@ -1,8 +1,10 @@
 package com.nuitar.service.Impl;
 
 import com.nuitar.exception.BaseException;
+import com.nuitar.mapper.GameSaveMapper;
 import com.nuitar.pojo.DTO.UserEnollDTO;
 import com.nuitar.pojo.DTO.UserLoginDTO;
+import com.nuitar.pojo.SaveGameUser;
 import com.nuitar.pojo.User;
 import com.nuitar.mapper.UserMapper;
 import com.nuitar.service.UserService;
@@ -15,6 +17,9 @@ import org.springframework.stereotype.Service;
 public class UserServiceImpl implements UserService {
     @Autowired
     UserMapper userMapper;
+
+    @Autowired
+    GameSaveMapper gameSaveMapper;
     @Override
     public User login(UserLoginDTO userLoginDTO) {
         User user = userMapper.getByUsername(userLoginDTO.getUsername());
@@ -33,5 +38,10 @@ public class UserServiceImpl implements UserService {
         user.setPassword(userEnollDTO.getPassword());
 
         userMapper.add(user);
+    }
+
+    @Override
+    public void saveData(SaveGameUser saveGameUser) {
+        gameSaveMapper.saveGame(saveGameUser);
     }
 }

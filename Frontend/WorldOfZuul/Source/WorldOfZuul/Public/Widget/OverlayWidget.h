@@ -30,6 +30,8 @@ class WORLDOFZUUL_API UOverlayWidget : public UUserWidget
 public:
 	virtual void NativeConstruct() override;
 
+	void SetRenderTarget(UTextureRenderTarget2D* InRenderTarget2D);
+
 	void AddCommandReplyMsg(const FWOZCommandReplyMsg& Msg);
 	void RefreshBagItems();
 	
@@ -56,7 +58,6 @@ private:
 	UFUNCTION()
 	void DropAll();
 
-	
 protected:
 	UPROPERTY()
 	TObjectPtr<AWOZPlayerController> PlayerController;
@@ -70,8 +71,18 @@ private:
 
 	UPROPERTY(EditAnywhere, Category = "WOZ")
 	TSubclassOf<UBagItemWidget> BagItemWidgetClass;
+
+	
+	UPROPERTY()
+	TObjectPtr<UTextureRenderTarget2D> RenderTarget2D;
+
+	UPROPERTY()
+	UMaterialInstanceDynamic* MaterialInstanceDynamic;
 	
 private:
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UImage> Image_Viewport;
+	
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<URichTextBlock> RichTextBlock_Process;
 
@@ -82,11 +93,11 @@ private:
 	TObjectPtr<UButton> Button_Execute;
 
 	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UImage> Image_Viewport;
-
-	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UScrollBox> ScrollBox_Bag;
 
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UTextBlock> TextBlock_GameData_Username;
+	
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> TextBlock_GameData_Score;
 	

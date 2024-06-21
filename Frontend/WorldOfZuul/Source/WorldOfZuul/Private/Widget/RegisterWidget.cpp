@@ -44,7 +44,7 @@ void URegisterWidget::Register()
 		return;
 	}
 	
-	SetIsEnabled(true);
+	SetIsEnabled(false);
 	
 	TSharedRef<IHttpRequest> Request = FHttpModule::Get().CreateRequest();
 
@@ -57,7 +57,7 @@ void URegisterWidget::Register()
 	FJsonSerializer::Serialize(JsonObject.ToSharedRef(), Writer);
 
 	Request->OnProcessRequestComplete().BindUObject(this, &URegisterWidget::OnRegisterResponseReceived);
-	Request->SetHeader("Content-Type", "application/json");
+	Request->SetHeader("Content-Type", "application/json;charset=UTF-8");
 	Request->SetContentAsString(RequestBody);
 	Request->SetURL(LoginURL);
 	Request->SetVerb("POST");
@@ -92,7 +92,7 @@ void URegisterWidget::OnRegisterResponseReceived(FHttpRequestPtr Request, FHttpR
 	TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(ResponseString);
 	if (FJsonSerializer::Deserialize(Reader, JsonObject))
 	{
-		if (JsonObject->GetBoolField("success"))
+		if (JsonObject->GetIntegerField("code") == 1)
 		{
 			UDialogWidget::DisplayDialog(DialogWidgetClass, this, RegisterSuccessfulMsg, false);
 

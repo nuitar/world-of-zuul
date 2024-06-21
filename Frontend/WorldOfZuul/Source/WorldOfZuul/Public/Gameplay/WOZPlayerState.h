@@ -23,10 +23,14 @@ class WORLDOFZUUL_API AWOZPlayerState : public APlayerState
 public:
 	AWOZPlayerState();
 	static AWOZPlayerState* Get(const UObject* WorldContext);
-
+	
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
-	void AddCommandProcessMsg(const FWOZCommandReplyMsg& Msg);
+	virtual void OnRep_Owner() override;
+	
+public:
+	const FText& GetUsername() const { return Username; }
+	
 	void AddScore(int32 Add);
 	void AddBagItem(EWOZGameItem::Type ItemToAdd);
 	void AddBagItems(TArray<TEnumAsByte<EWOZGameItem::Type>> ItemsToAdd);
@@ -37,7 +41,7 @@ public:
 	void PopRoomPosition();
 	const TArray<FIntPoint>& GetRoomPositionHistory() const { return RoomPositionHistory; }
 
-	int32 GetScore() const { return GameScore; }
+	int32 GetGameScore() const { return GameScore; }
 	const TArray<TEnumAsByte<EWOZGameItem::Type>>& GetBagItems() const { return BagItems; }
 	int32 GetCurrentWeight(UWOZGameplayData* GameplayData);
 	int32 GetMaxWeight() const { return MaxWeight; }
@@ -46,6 +50,9 @@ public:
 	const FIntPoint& GetCurrentRoomPosition() const { return RoomPositionHistory.Last(); }
 
 private:
+	UFUNCTION(Server, Reliable)
+	void SetUserName(const FText& InUsername);
+	
 	UFUNCTION()
 	void OnRep_BagItems();
 	
@@ -65,8 +72,9 @@ public:
 	FWOZPlayerStateSignature OnRoomPositionHistoryUpdated;
 	
 protected:
+	UPROPERTY(Replicated)
 	FText Username;
-
+	
 	UPROPERTY(ReplicatedUsing = "OnRep_GameScore")
 	int32 GameScore = 0;
 

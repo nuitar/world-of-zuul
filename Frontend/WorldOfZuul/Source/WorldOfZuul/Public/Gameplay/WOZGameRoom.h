@@ -21,6 +21,7 @@ class WORLDOFZUUL_API AWOZGameRoom : public AActor
 
 public:
 	AWOZGameRoom();
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 public:
 	static AWOZGameRoom* CreateRoom(UObject* WorldContext, const FWOZGameRoomInfo& Info, const FIntPoint& Pos, UWOZGameplayData* GameplayData);
@@ -58,6 +59,9 @@ private:
 	void OnDoorNorthOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 
 	void DoorOverlap(AActor* Actor, EWOZGameRoomDirection::Type Direction);
+
+	UFUNCTION()
+	void OnRep_RoomInfo();
 	
 private:
 	UPROPERTY(VisibleAnywhere)
@@ -85,6 +89,7 @@ private:
 	
 	UPROPERTY()
 	TObjectPtr<UMaterialInstanceDynamic> MaterialInstanceDynamic;
-	
+
+	UPROPERTY(ReplicatedUsing = "OnRep_RoomInfo")
 	FWOZGameRoomInfo RoomInfo;
 };

@@ -24,6 +24,7 @@ namespace EWOZCommand
 		Eat,
 		Look,
 		Item,
+		Save,
 	};
 }
 
@@ -167,6 +168,24 @@ struct FWOZCommandReplyMsg
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FText Reply;
+};
+
+USTRUCT(BlueprintType)
+struct FWOZSaveGameData
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FTransform PlayerTransform;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TArray<TEnumAsByte<EWOZGameItem::Type>> BagItems;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TArray<FWOZGameRoomData> RoomDatas;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TArray<FWOZCommandReplyMsg> CommandReplyMsgs;
 };
 
 /**

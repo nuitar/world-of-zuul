@@ -10,7 +10,7 @@ public class WorldOfZuul : ModuleRules
 	
 		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore" });
 		
-		PrivateDependencyModuleNames.AddRange(new string[] { "EnhancedInput" , "UMG", "HTTP", "Json", "SlateCore" });
+		PrivateDependencyModuleNames.AddRange(new string[] { "EnhancedInput" , "UMG", "HTTP", "Json", "JsonUtilities", "SlateCore" });
 
 		// Uncomment if you are using Slate UI
 		// PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });

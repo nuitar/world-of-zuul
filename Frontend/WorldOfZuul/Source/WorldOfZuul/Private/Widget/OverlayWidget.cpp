@@ -1,11 +1,16 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "WorldOfZuul/Public/Widget/OverlayWidget.h"
+
+#include "HttpModule.h"
 #include "Components/Button.h"
 #include "Components/EditableTextBox.h"
+#include "Components/Image.h"
 #include "Components/RichTextBlock.h"
 #include "Components/ScrollBox.h"
 #include "Components/TextBlock.h"
+#include "Engine/TextureRenderTarget2D.h"
+#include "Gameplay/WOZGameInstance.h"
 #include "Gameplay/WOZPlayerController.h"
 #include "Gameplay/WOZPlayerState.h"
 #include "Widget/BagItemWidget.h"
@@ -13,6 +18,11 @@
 void UOverlayWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
+
+	UWOZGameInstance* GameInstance = Cast<UWOZGameInstance>(GetGameInstance());
+	check(GameInstance);
+
+	TextBlock_GameData_Username->SetText(GameInstance->Username);
 
 	PlayerController = Cast<AWOZPlayerController>(GetOwningPlayer());
 	PlayerState = PlayerController->GetPlayerState<AWOZPlayerState>();
@@ -30,6 +40,18 @@ void UOverlayWidget::NativeConstruct()
 	OnRoomPositionHistoryUpdated(PlayerState);
 	OnBagItemUpdated(PlayerState);
 	OnMaxWeightUpdated(PlayerState);
+}
+
+void UOverlayWidget::SetRenderTarget(UTextureRenderTarget2D* InRenderTarget2D)
+{
+	RenderTarget2D = InRenderTarget2D;
+	FSlateBrush Brush = Image_Viewport->GetBrush();
+	
+	MaterialInstanceDynamic = UMaterialInstanceDynamic::Create(Cast<UMaterialInterface>(Brush.GetResourceObject()), this);
+	MaterialInstanceDynamic->SetTextureParameterValue(FName("Texture"), RenderTarget2D);
+	Brush.SetResourceObject(MaterialInstanceDynamic);
+
+	Image_Viewport->SetBrush(Brush);
 }
 
 void UOverlayWidget::AddCommandReplyMsg(const FWOZCommandReplyMsg& Msg)
@@ -95,7 +117,7 @@ void UOverlayWidget::ExecuteCommand_DirectionTarget(TEnumAsByte<EWOZCommand::Typ
 void UOverlayWidget::OnScoreUpdated(AWOZPlayerState* PS)
 {
 	check(PlayerState);
-	const FString& Str = FString::FromInt(PlayerState->GetScore());
+	const FString& Str = FString::FromInt(PlayerState->GetGameScore());
 	TextBlock_GameData_Score->SetText(FText::FromString(Str));
 }
 
@@ -139,4 +161,3 @@ void UOverlayWidget::DropAll()
 	Command += " all";
 	PlayerController->ExecuteCommand(Command);
 }
-

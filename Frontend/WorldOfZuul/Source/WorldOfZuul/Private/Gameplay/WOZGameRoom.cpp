@@ -7,11 +7,15 @@
 #include "Gameplay/WOZPlayerCharacter.h"
 #include "Gameplay/WOZPlayerController.h"
 #include "Kismet/KismetMathLibrary.h"
+#include "Net/UnrealNetwork.h"
 
 
 AWOZGameRoom::AWOZGameRoom()
 {
 	PrimaryActorTick.bCanEverTick = true;
+
+	bReplicates = true;
+	SetReplicatingMovement(true);
 
 	Floor = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Plane"));
 	SetRootComponent(Floor);
@@ -27,6 +31,13 @@ AWOZGameRoom::AWOZGameRoom()
 
 	Door_North = CreateDefaultSubobject<UBoxComponent>(TEXT("Door_North"));
 	Door_North->SetupAttachment(GetRootComponent());
+}
+
+void AWOZGameRoom::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(AWOZGameRoom, RoomInfo);
 }
 
 AWOZGameRoom* AWOZGameRoom::CreateRoom(UObject* WorldContext, const FWOZGameRoomInfo& Info, const FIntPoint& Pos, UWOZGameplayData* GameplayData)
@@ -105,6 +116,8 @@ void AWOZGameRoom::SetRoomInfo(const FWOZGameRoomInfo& Info)
 
 void AWOZGameRoom::InitDoors(const TArray<FIntPoint>& MapRoomPos)
 {
+	//尚未同步
+	
 	//East
 	if (MapRoomPos.Contains(FIntPoint(Position.X, Position.Y + 1)))
 	{
@@ -261,7 +274,7 @@ void AWOZGameRoom::ReplaceItem(AWOZGameItem* OldItem, EWOZGameItem::Type NewItem
 {
 	if (!OldItem || !Items.Contains(OldItem)) return;
 
-	OldItem->UpdateItem(NewItemEnum, GameplayData);
+	OldItem->UpdateItem(NewItemEnum);
 }
 
 TArray<EWOZGameItem::Type> AWOZGameRoom::GetAllItemEnums() const
@@ -324,4 +337,9 @@ void AWOZGameRoom::DoorOverlap(AActor* Actor, EWOZGameRoomDirection::Type Direct
 			PlayerController->ExecuteCommand(Str);
 		}
 	}
+}
+
+void AWOZGameRoom::OnRep_RoomInfo()
+{
+	SetRoomInfo(RoomInfo);
 }

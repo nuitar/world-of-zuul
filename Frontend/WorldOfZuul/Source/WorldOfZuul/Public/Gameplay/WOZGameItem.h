@@ -17,13 +17,19 @@ class WORLDOFZUUL_API AWOZGameItem : public AActor
 
 public:
 	AWOZGameItem();
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
+public:
 	static AWOZGameItem* CreateItem(UObject* WorldContext, EWOZGameItem::Type ItemEnum, const FIntPoint& Position, UWOZGameplayData* GameplayData);
-	void UpdateItem(EWOZGameItem::Type ItemEnum, UWOZGameplayData* GameplayData);
+	void UpdateItem(EWOZGameItem::Type InItemEnum);
 	
-	TEnumAsByte<EWOZGameItem::Type> GetItemEnum() const { return Item; }
+	TEnumAsByte<EWOZGameItem::Type> GetItemEnum() const { return ItemEnum; }
 	const FIntPoint& GetPosition() const { return Position; }
 
+private:
+	UFUNCTION()
+	void OnRep_ItemEnum();
+	
 private:
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<UStaticMeshComponent> Plane;
@@ -31,9 +37,14 @@ private:
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<USphereComponent> Sphere;
 
+	UPROPERTY(EditAnywhere, Category = WOZ)
+	TObjectPtr<UWOZGameplayData> GameplayData;
+	
 	UPROPERTY()
 	TObjectPtr<UMaterialInstanceDynamic> MaterialInstanceDynamic;
 	
 	FIntPoint Position;
-	TEnumAsByte<EWOZGameItem::Type> Item = EWOZGameItem::None;
+
+	UPROPERTY(ReplicatedUsing = "OnRep_ItemEnum")
+	TEnumAsByte<EWOZGameItem::Type> ItemEnum = EWOZGameItem::None;
 };

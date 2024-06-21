@@ -3,10 +3,14 @@
 #include "Gameplay/WOZGameItem.h"
 #include "Components/SphereComponent.h"
 #include "Gameplay/WOZGameplayData.h"
+#include "Net/UnrealNetwork.h"
 
 AWOZGameItem::AWOZGameItem()
 {
 	PrimaryActorTick.bCanEverTick = false;
+
+	bReplicates = true;
+	SetReplicatingMovement(true);
 
 	Plane = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Plane"));
 	SetRootComponent(Plane);
@@ -16,6 +20,12 @@ AWOZGameItem::AWOZGameItem()
 	Sphere->SetupAttachment(GetRootComponent());
 }
 
+void AWOZGameItem::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(AWOZGameItem, ItemEnum);
+}
 
 
 AWOZGameItem* AWOZGameItem::CreateItem(UObject* WorldContext, EWOZGameItem::Type ItemEnum, const FIntPoint& Position, UWOZGameplayData* GameplayData)
@@ -34,16 +44,31 @@ AWOZGameItem* AWOZGameItem::CreateItem(UObject* WorldContext, EWOZGameItem::Type
 
 	Item->SetActorScale3D(FVector(GameplayData->ItemSize / 100.f));
 	Item->Position = Position;
-	Item->UpdateItem(ItemEnum, GameplayData);
+	Item->UpdateItem(ItemEnum);
 
 	return Item;
 }
 
-void AWOZGameItem::UpdateItem(EWOZGameItem::Type ItemEnum, UWOZGameplayData* GameplayData)
+void AWOZGameItem::UpdateItem(EWOZGameItem::Type InItemEnum)
 {
+	if (!MaterialInstanceDynamic)
+	{
+		UMaterialInterface* Material = Plane->GetMaterial(0);
+		if (Material)
+		{
+			MaterialInstanceDynamic = UMaterialInstanceDynamic::Create(Material, this);
+			Plane->SetMaterial(0,MaterialInstanceDynamic);
+		}
+	}
+	
 	check(GameplayData && MaterialInstanceDynamic);
-	Item = ItemEnum;
+	ItemEnum = InItemEnum;
 
-	const FWOZGameItemInfo& ItemInfo = GameplayData->Items.FindRef(Item);
+	const FWOZGameItemInfo& ItemInfo = GameplayData->Items.FindRef(InItemEnum);
 	MaterialInstanceDynamic->SetTextureParameterValue(FName("Texture"), ItemInfo.Icon);
+}
+
+void AWOZGameItem::OnRep_ItemEnum()
+{
+	UpdateItem(ItemEnum);
 }

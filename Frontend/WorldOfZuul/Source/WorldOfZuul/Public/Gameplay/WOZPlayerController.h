@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "InputMappingContext.h"
 #include "WOZGameplayData.h"
+#include "Interfaces/IHttpRequest.h"
 #include "GameFramework/PlayerController.h"
 #include "WOZPlayerController.generated.h"
 
@@ -38,9 +39,12 @@ public:
 
 	
 protected:
-	virtual void BeginPlay() override;
-	virtual void AcknowledgePossession(APawn* P) override;
+	virtual void OnPossess(APawn* InPawn) override;
+	virtual void OnRep_PlayerState() override;
+	virtual void OnRep_Pawn() override;
 	void Move(const FInputActionValue& Value);
+
+	UFUNCTION(Server, Reliable)
 	void Interact();
 	
 	
@@ -63,10 +67,14 @@ private:
 	FText CommandEat(const FString& Target);
 	FText CommandLook();
 	FText CommandItem();
+	void CommandSave();
 
 	AWOZGameItem* GetNearestItem(EWOZGameItem::Type ItemEnum, AWOZGameRoom* Room) const;
+	UFUNCTION(NetMulticast, Reliable)
 	void GotoRoom(AWOZGameRoom* Room);
 	FText TeleportRandom();
+
+	void OnSaveResponseReceived(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bRequestSuccessful);
 
 protected:
 	UPROPERTY()
@@ -93,7 +101,13 @@ private:
 
 	UPROPERTY(EditAnywhere, Category = "WOZ")
 	TObjectPtr<UWOZGameplayData> GameplayData;
-
+	
+	UPROPERTY(EditAnywhere, Category = "WOZ|HTTP")
+	FString SaveURL;
+	
+	UPROPERTY()
+	TArray<FWOZCommandReplyMsg> CommandReplyMsgs;
+	
 	UPROPERTY()
 	TObjectPtr<AWOZGameItem> CurrentOverlappingGameItem;
 };

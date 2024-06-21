@@ -1,6 +1,8 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "Gameplay/WOZPlayerState.h"
+
+#include "Gameplay/WOZGameInstance.h"
 #include "Kismet/GameplayStatics.h"
 #include "Net/UnrealNetwork.h"
 
@@ -22,11 +24,19 @@ void AWOZPlayerState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutL
 
 	DOREPLIFETIME_CONDITION(AWOZPlayerState, BagItems, COND_OwnerOnly);
 	DOREPLIFETIME_CONDITION(AWOZPlayerState, MaxWeight, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(AWOZPlayerState, Username, COND_OwnerOnly);
 }
 
-void AWOZPlayerState::AddCommandProcessMsg(const FWOZCommandReplyMsg& Msg)
+void AWOZPlayerState::OnRep_Owner()
 {
-	
+	Super::OnRep_Owner();
+
+	if (GetOwningController() && GetOwningController()->IsLocalController())
+	{
+		UWOZGameInstance* GameInstance = Cast<UWOZGameInstance>(GetGameInstance());
+		check(GameInstance);
+		SetUserName(GameInstance->Username);
+	}
 }
 
 void AWOZPlayerState::AddScore(int32 Add)
@@ -131,6 +141,11 @@ void AWOZPlayerState::AddMaxWeight(int32 Add)
 	{
 		OnMaxWeightUpdated.Broadcast(this);
 	}
+}
+
+void AWOZPlayerState::SetUserName_Implementation(const FText& InUsername)
+{
+	Username = InUsername;
 }
 
 void AWOZPlayerState::OnRep_BagItems()

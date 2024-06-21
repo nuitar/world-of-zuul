@@ -3,39 +3,30 @@
 #include "Gameplay/WOZPlayerController.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
+#include "HttpModule.h"
 #include "InputActionValue.h"
+#include "JsonObjectConverter.h"
 #include "Blueprint/UserWidget.h"
 #include "Components/CapsuleComponent.h"
+#include "Components/SceneCaptureComponent2D.h"
 #include "Engine/SceneCapture2D.h"
+#include "Engine/TextureRenderTarget2D.h"
 #include "Gameplay/WOZGameItem.h"
 #include "Gameplay/WOZGameMode.h"
 #include "Gameplay/WOZGameplayData.h"
 #include "Gameplay/WOZGameRoom.h"
 #include "Gameplay/WOZPlayerCharacter.h"
 #include "Gameplay/WOZPlayerState.h"
+#include "Interfaces/IHttpRequest.h"
+#include "Interfaces/IHttpResponse.h"
 #include "Kismet/GameplayStatics.h"
 #include "Widget/OverlayWidget.h"
 
-void AWOZPlayerController::BeginPlay()
+void AWOZPlayerController::OnPossess(APawn* InPawn)
 {
-	Super::BeginPlay();
-
-	if (SceneCapture2D = Cast<ASceneCapture2D>(UGameplayStatics::GetActorOfClass(this, ASceneCapture2D::StaticClass())))
-	{
-		SetViewTarget(SceneCapture2D);
-	}
-}
-
-void AWOZPlayerController::AcknowledgePossession(APawn* P)
-{
-	Super::AcknowledgePossession(P);
-
-	check(OverlayWidgetClass);
-
-	WOZPlayerState = GetPlayerState<AWOZPlayerState>();
+	Super::OnPossess(InPawn);
 	
-	SetupInput();
-	SetShowMouseCursor(true);
+	WOZPlayerState = GetPlayerState<AWOZPlayerState>();
 
 	GetPawn()->OnActorBeginOverlap.AddDynamic(this, &AWOZPlayerController::AWOZPlayerController::OnPawnBeginOverlap);
 	GetPawn()->OnActorEndOverlap.AddDynamic(this,  &AWOZPlayerController::AWOZPlayerController::OnPawnEndOverlap);
@@ -43,15 +34,74 @@ void AWOZPlayerController::AcknowledgePossession(APawn* P)
 	if (IsLocalController())
 	{
 		check(OverlayWidgetClass);
-
 		OverlayWidget = CreateWidget<UOverlayWidget>(this, OverlayWidgetClass);
 		OverlayWidget->AddToViewport();
+		
+		if (ASceneCapture2D* SC2D = Cast<ASceneCapture2D>(UGameplayStatics::GetActorOfClass(this, ASceneCapture2D::StaticClass())))
+		{
+			UTextureRenderTarget2D* RenderTarget2D = NewObject<UTextureRenderTarget2D>(this);
+			RenderTarget2D->InitAutoFormat(2048, 2048);
+			SceneCapture2D = SC2D;
+			SceneCapture2D->GetCaptureComponent2D()->TextureTarget = RenderTarget2D;
+			SetViewTarget(SceneCapture2D);
+
+			OverlayWidget->SetRenderTarget(RenderTarget2D);
+		}
+	
+		SetupInput();
+		SetShowMouseCursor(true);
 	}
+}
+
+void AWOZPlayerController::OnRep_PlayerState()
+{
+	Super::OnRep_PlayerState();
+
+	if (!GetPlayerState<AWOZPlayerState>()) return;
+	if (OverlayWidget) return;
+	
+	WOZPlayerState = GetPlayerState<AWOZPlayerState>();
+	
+	if (IsLocalController())
+	{
+		check(OverlayWidgetClass);
+		OverlayWidget = CreateWidget<UOverlayWidget>(this, OverlayWidgetClass);
+		OverlayWidget->AddToViewport();
+
+		if (SceneCapture2D)
+		{
+			OverlayWidget->SetRenderTarget(SceneCapture2D->GetCaptureComponent2D()->TextureTarget);
+		}
+	}
+}
+
+void AWOZPlayerController::OnRep_Pawn()
+{
+	Super::OnRep_Pawn();
+
+	if (!GetPawn()) return;
+	if (SceneCapture2D) return;
+	
+	if (ASceneCapture2D* SC2D = Cast<ASceneCapture2D>(UGameplayStatics::GetActorOfClass(this, ASceneCapture2D::StaticClass())))
+	{
+		UTextureRenderTarget2D *RenderTarget2D = NewObject<UTextureRenderTarget2D>(this);
+		RenderTarget2D->InitAutoFormat(2048, 2048);
+		SceneCapture2D = SC2D;
+		SceneCapture2D->GetCaptureComponent2D()->TextureTarget = RenderTarget2D;
+		SetViewTarget(SceneCapture2D);
+
+		if (OverlayWidget)
+		{
+			OverlayWidget->SetRenderTarget(RenderTarget2D);
+		}
+	}
+	
+	SetupInput();
+	SetShowMouseCursor(true);
 }
 
 void AWOZPlayerController::SetupInput()
 {
-	
 	UEnhancedInputLocalPlayerSubsystem* Subsystem = GetLocalPlayer()->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>();
 	Subsystem->AddMappingContext(Context, 0);
 	
@@ -69,7 +119,6 @@ void AWOZPlayerController::OnPawnBeginOverlap(AActor* OverlappedActor, AActor* O
 
 		if (GameItem->GetItemEnum() == EWOZGameItem::TeleportDoor)
 		{
-			
 			ExecuteCommand_ItemTarget(EWOZCommand::Use, EWOZGameItem::TeleportDoor);
 		}
 	}
@@ -92,7 +141,7 @@ void AWOZPlayerController::Move(const FInputActionValue& Value)
 	GetPawn()->AddMovementInput(InputAxis);
 }
 
-void AWOZPlayerController::Interact()
+void AWOZPlayerController::Interact_Implementation()
 {
 	check(GameplayData);
 	if (!CurrentOverlappingGameItem) return;
@@ -141,6 +190,7 @@ void AWOZPlayerController::ExecuteCommand_Implementation(const FString& CommandS
 	if (!GameplayData->StringCommands.Contains(LeftStr.ToLower()))
 	{
 		Msg.Reply = FText::FromString(TEXT("你输入了一个无效的指令。"));
+		CommandReplyMsgs.Emplace(Msg);
 		ReplyCommand(Msg);
 		return;
 	}
@@ -185,9 +235,14 @@ void AWOZPlayerController::ExecuteCommand_Implementation(const FString& CommandS
 		Msg.Reply = CommandItem();
 		break;
 		
+	case EWOZCommand::Save:
+		CommandSave();
+		return;
+		
 	default: ;
 	}
 
+	CommandReplyMsgs.Emplace(Msg);
 	ReplyCommand(Msg);
 }
 
@@ -231,7 +286,7 @@ void AWOZPlayerController::ReplyCommand_Implementation(const FWOZCommandReplyMsg
 
 FText AWOZPlayerController::CommandGo(const FString& Target)
 {
-	check(GameplayData && WOZPlayerState && SceneCapture2D);
+	check(GameplayData && WOZPlayerState);
 
 	AWOZGameMode* GameMode = Cast<AWOZGameMode>(GetWorld()->GetAuthGameMode());
 	check(GameMode);
@@ -429,7 +484,7 @@ FText AWOZPlayerController::CommandOpen(const FString& Target)
 		}
 		else
 		{
-			return FText::FromString(TEXT("房间内没有可以进行开启操作的事物"));
+			return FText::FromString(TEXT("你的身边没有可以进行开启操作的事物。"));
 		}
 	}
 	else
@@ -451,6 +506,7 @@ FText AWOZPlayerController::CommandOpen(const FString& Target)
 			FString Str = TEXT("房间中没有");
 			const FString& Name = GameplayData->GetItemNameString(ItemEnum);
 			Str += Name + TEXT("。");
+			return FText::FromString(Str);
 		}
 	}
 
@@ -889,6 +945,48 @@ FText AWOZPlayerController::CommandItem()
 	return FText::FromString(Str);
 }
 
+void AWOZPlayerController::CommandSave()
+{
+	//序列化保存
+	check(GameplayData && WOZPlayerState);
+	AWOZGameMode* GameMode = Cast<AWOZGameMode>(GetWorld()->GetAuthGameMode());
+	check(GameMode);
+
+	TArray<AWOZGameRoom*> Rooms = GameMode->GetAllRooms();
+
+	FWOZSaveGameData SaveGameData;
+
+	SaveGameData.PlayerTransform = GetPawn()->GetActorTransform();
+	SaveGameData.BagItems = WOZPlayerState->GetBagItems();
+	
+	for (AWOZGameRoom* Room : Rooms)
+	{
+		SaveGameData.RoomDatas.Emplace(Room->GetRoomData());
+	}
+
+	SaveGameData.CommandReplyMsgs = CommandReplyMsgs;
+
+	FString Str;
+	FJsonObjectConverter::UStructToJsonObjectString(SaveGameData, Str);
+
+	TSharedRef<IHttpRequest> Request = FHttpModule::Get().CreateRequest();
+
+	TSharedPtr<FJsonObject> JsonObject = MakeShareable(new FJsonObject);
+	JsonObject->SetStringField("savegamedata", Str);
+
+	FString RequestBody;
+	TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&RequestBody);
+	FJsonSerializer::Serialize(JsonObject.ToSharedRef(), Writer);
+
+	Request->OnProcessRequestComplete().BindUObject(this, &AWOZPlayerController::OnSaveResponseReceived);
+	Request->SetHeader("Content-Type", "application/json;charset=UTF-8");
+	Request->SetContentAsString(RequestBody);
+	Request->SetURL(SaveURL);
+	Request->SetVerb("POST");
+	
+	Request->ProcessRequest();
+}
+
 AWOZGameItem* AWOZPlayerController::GetNearestItem(EWOZGameItem::Type ItemEnum, AWOZGameRoom* Room) const
 {
 	float MinDis = (float)INT32_MAX;
@@ -906,13 +1004,19 @@ AWOZGameItem* AWOZPlayerController::GetNearestItem(EWOZGameItem::Type ItemEnum, 
 	return NearestItem;
 }
 
-void AWOZPlayerController::GotoRoom(AWOZGameRoom* Room)
+void AWOZPlayerController::GotoRoom_Implementation(AWOZGameRoom* Room)
 {
+	check(GameplayData);
+	
 	const FVector& RoomLocation = Room->GetActorLocation();
 	const float CaptureZ = GameplayData->RoomSize / 2.f;
 
 	GetPawn()->SetActorLocation(FVector(RoomLocation.X, RoomLocation.Y, 92.0));
-	SceneCapture2D->SetActorLocation(FVector(RoomLocation.X, RoomLocation.Y, CaptureZ));
+
+	if (IsLocalController())
+	{
+		SceneCapture2D->SetActorLocation(FVector(RoomLocation.X, RoomLocation.Y, CaptureZ));
+	}
 }
 
 FText AWOZPlayerController::TeleportRandom()
@@ -933,4 +1037,38 @@ FText AWOZPlayerController::TeleportRandom()
 	Str += TEXT("。");
 
 	return FText::FromString(Str);
+}
+
+void AWOZPlayerController::OnSaveResponseReceived(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bRequestSuccessful)
+{
+	FWOZCommandReplyMsg Msg;
+	Msg.Command = FText::FromString(GameplayData->GetStringCommand(EWOZCommand::Save));
+
+	if (!bRequestSuccessful || !Response.IsValid() || !EHttpResponseCodes::IsOk(Response->GetResponseCode()))
+	{
+		FString Str = TEXT("保存游戏的网络请求无效。");
+		Msg.Reply = FText::FromString(Str);
+		ReplyCommand(Msg);
+		return;
+	}
+	
+	FString ResponseString = Response->GetContentAsString();
+
+	TSharedPtr<FJsonObject> JsonObject;
+	TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(ResponseString);
+	if (FJsonSerializer::Deserialize(Reader, JsonObject))
+	{
+		if (JsonObject->GetIntegerField("code") == 1)
+		{
+			FString Str = TEXT("游戏进度已保存至服务器。");
+			Msg.Reply = FText::FromString(Str);
+			ReplyCommand(Msg);
+		}
+		else
+		{
+			FString Str = TEXT("游戏进度保存失败。");
+			Msg.Reply = FText::FromString(Str);
+			ReplyCommand(Msg);
+		}
+	}
 }

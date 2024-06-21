@@ -2,6 +2,7 @@ package com.nuitar.controller;
 
 import com.nuitar.pojo.DTO.UserEnollDTO;
 import com.nuitar.pojo.DTO.UserLoginDTO;
+import com.nuitar.pojo.SaveGameUser;
 import com.nuitar.pojo.User;
 import com.nuitar.service.UserService;
 import com.nuitar.utils.Result;
@@ -26,6 +27,12 @@ public class UserController {
     @PostMapping("/enroll")
     public Result addUser(@RequestBody UserEnollDTO userEnollDTO){
         userService.addUser(userEnollDTO);
+        return Result.success();
+    }
+
+    @PostMapping("/save")
+    public Result saveData(@RequestBody SaveGameUser saveGameUser){
+        userService.saveData(saveGameUser);
         return Result.success();
     }
 }

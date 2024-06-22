@@ -20,7 +20,12 @@ class WORLDOFZUUL_API AWOZGameMode : public AGameModeBase
 
 
 public:
+	AWOZGameMode();
+	
+	virtual void Tick(float DeltaSeconds) override;
 	virtual void InitGame(const FString& MapName, const FString& Options, FString& ErrorMessage) override;
+
+	float GetRemainTime() const { return GameRemainTime; }
 	
 	UFUNCTION(BlueprintCallable)
 	void GenerateMap(const FIntPoint& HalfSize);
@@ -37,4 +42,7 @@ private:
 	
 	UPROPERTY()
 	TArray<AWOZGameRoom*> Rooms;
+
+	UPROPERTY()
+	float GameRemainTime = 0.f;
 };

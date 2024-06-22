@@ -25,6 +25,7 @@ namespace EWOZCommand
 		Look,
 		Item,
 		Save,
+		Quit,
 	};
 }
 
@@ -179,6 +180,9 @@ struct FWOZSaveGameData
 	FTransform PlayerTransform;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float GameRemainTime = 0.f;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int32 GameScore = 0;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -195,6 +199,15 @@ struct FWOZSaveGameData
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TArray<FWOZCommandReplyMsg> CommandReplyMsgs;
+};
+
+USTRUCT(BlueprintType)
+struct FWOZGameHistoryData
+{
+	GENERATED_BODY()
+	
+	UPROPERTY()
+	int32 GameScore = 0;
 };
 
 /**
@@ -225,6 +238,9 @@ public:
 
 	
 public:
+	UPROPERTY(EditAnywhere, Category = "WOZ|Command")
+	float GameTimeSeconds = 180.f;
+	
 	UPROPERTY(EditAnywhere, Category = "WOZ|Command")
 	TMap<FString, TEnumAsByte<EWOZCommand::Type>> StringCommands;
 	

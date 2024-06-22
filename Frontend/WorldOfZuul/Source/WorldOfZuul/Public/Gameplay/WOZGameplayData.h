@@ -179,7 +179,16 @@ struct FWOZSaveGameData
 	FTransform PlayerTransform;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int32 GameScore = 0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TArray<FIntPoint> RoomPositionHistory;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TArray<TEnumAsByte<EWOZGameItem::Type>> BagItems;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int32 MaxWeight = 0;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TArray<FWOZGameRoomData> RoomDatas;

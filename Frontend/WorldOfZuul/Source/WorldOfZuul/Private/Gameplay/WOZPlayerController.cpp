@@ -11,6 +11,7 @@
 #include "Components/SceneCaptureComponent2D.h"
 #include "Engine/SceneCapture2D.h"
 #include "Engine/TextureRenderTarget2D.h"
+#include "Gameplay/WOZGameInstance.h"
 #include "Gameplay/WOZGameItem.h"
 #include "Gameplay/WOZGameMode.h"
 #include "Gameplay/WOZGameplayData.h"
@@ -50,6 +51,31 @@ void AWOZPlayerController::OnPossess(APawn* InPawn)
 	
 		SetupInput();
 		SetShowMouseCursor(true);
+	}
+
+	if (GetNetMode() == NM_Standalone)
+	{
+		UWOZGameInstance* GameInstance = Cast<UWOZGameInstance>(GetGameInstance());
+		check(GameInstance);
+
+		if (!GameInstance->bIsNewGame) return;
+		
+		AWOZGameMode* GameMode = Cast<AWOZGameMode>(GetWorld()->GetAuthGameMode());
+		check(GameMode);
+
+		CommandReplyMsgs = GameInstance->SinglePlayerSaveGameData.CommandReplyMsgs;
+		for (const FWOZCommandReplyMsg& CommandReplyMsg : CommandReplyMsgs)
+		{
+			OverlayWidget->AddCommandReplyMsg(CommandReplyMsg);
+		}
+		
+		WOZPlayerState->AddBagItems(GameInstance->SinglePlayerSaveGameData.BagItems);
+		WOZPlayerState->AddScore(GameInstance->SinglePlayerSaveGameData.GameScore);
+		WOZPlayerState->RoomPositionHistory = GameInstance->SinglePlayerSaveGameData.RoomPositionHistory;
+		WOZPlayerState->SetMaxWeight(GameInstance->SinglePlayerSaveGameData.MaxWeight);
+		
+		GotoRoom(GameMode->GetRoomByPosition(WOZPlayerState->GetCurrentRoomPosition()));
+		GetPawn()->SetActorTransform(GameInstance->SinglePlayerSaveGameData.PlayerTransform);
 	}
 }
 
@@ -949,29 +975,32 @@ void AWOZPlayerController::CommandSave()
 {
 	//序列化保存
 	check(GameplayData && WOZPlayerState);
+	UWOZGameInstance* GameInstance = Cast<UWOZGameInstance>(GetGameInstance());
+	check(GameInstance);
 	AWOZGameMode* GameMode = Cast<AWOZGameMode>(GetWorld()->GetAuthGameMode());
 	check(GameMode);
 
-	TArray<AWOZGameRoom*> Rooms = GameMode->GetAllRooms();
+	const TArray<AWOZGameRoom*>& Rooms = GameMode->GetAllRooms();
 
 	FWOZSaveGameData SaveGameData;
-
-	SaveGameData.PlayerTransform = GetPawn()->GetActorTransform();
-	SaveGameData.BagItems = WOZPlayerState->GetBagItems();
-	
 	for (AWOZGameRoom* Room : Rooms)
 	{
 		SaveGameData.RoomDatas.Emplace(Room->GetRoomData());
 	}
-
 	SaveGameData.CommandReplyMsgs = CommandReplyMsgs;
-
+	SaveGameData.PlayerTransform = GetPawn()->GetActorTransform();
+	SaveGameData.GameScore = WOZPlayerState->GetScore();
+	SaveGameData.RoomPositionHistory = WOZPlayerState->GetRoomPositionHistory();
+	SaveGameData.BagItems = WOZPlayerState->GetBagItems();
+	SaveGameData.MaxWeight = WOZPlayerState->GetMaxWeight();
+	
 	FString Str;
 	FJsonObjectConverter::UStructToJsonObjectString(SaveGameData, Str);
 
 	TSharedRef<IHttpRequest> Request = FHttpModule::Get().CreateRequest();
 
 	TSharedPtr<FJsonObject> JsonObject = MakeShareable(new FJsonObject);
+	JsonObject->SetStringField("username", GameInstance->Username.ToString());
 	JsonObject->SetStringField("savegamedata", Str);
 
 	FString RequestBody;

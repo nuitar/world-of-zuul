@@ -1,11 +1,23 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "Gameplay/WOZGameMode.h"
+#include "Gameplay/WOZGameInstance.h"
 #include "Gameplay/WOZGameRoom.h"
 
 void AWOZGameMode::InitGame(const FString& MapName, const FString& Options, FString& ErrorMessage)
 {
 	Super::InitGame(MapName, Options, ErrorMessage);
+	
+	if (GetNetMode() == NM_Standalone)
+	{
+		UWOZGameInstance* GameInstance = Cast<UWOZGameInstance>(GetGameInstance());
+		check(GameInstance);
+
+		if (!GameInstance->bIsNewGame) return;
+		
+		GenerateMap(GameInstance->SinglePlayerSaveGameData.RoomDatas);
+		return;
+	}
 
 	GenerateMap(FIntPoint(4, 4));
 }

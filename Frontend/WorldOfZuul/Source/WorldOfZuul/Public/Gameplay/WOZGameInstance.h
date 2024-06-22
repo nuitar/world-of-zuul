@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "WOZGameplayData.h"
 #include "Engine/GameInstance.h"
 #include "WOZGameInstance.generated.h"
 
@@ -19,4 +20,7 @@ public:
 
 public:
 	FText Username;
+
+	bool bIsNewGame = true;
+	FWOZSaveGameData SinglePlayerSaveGameData;
 };

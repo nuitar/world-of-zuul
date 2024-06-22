@@ -45,6 +45,7 @@ public:
 	const TArray<TEnumAsByte<EWOZGameItem::Type>>& GetBagItems() const { return BagItems; }
 	int32 GetCurrentWeight(UWOZGameplayData* GameplayData);
 	int32 GetMaxWeight() const { return MaxWeight; }
+	void SetMaxWeight(int32 Weight);
 	void AddMaxWeight(int32 Add);
 	
 	const FIntPoint& GetCurrentRoomPosition() const { return RoomPositionHistory.Last(); }

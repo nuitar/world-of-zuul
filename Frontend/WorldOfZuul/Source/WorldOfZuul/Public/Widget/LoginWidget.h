@@ -49,7 +49,7 @@ protected:
 protected:
 	UPROPERTY(EditAnywhere, Category = "LoginAndRegister")
 	FString LoginURL;
-
+	
 	UPROPERTY(EditAnywhere, Category = "LoginAndRegister")
 	FText EmptyInputMsg;
 	
@@ -64,4 +64,7 @@ protected:
 
 	UPROPERTY(EditAnywhere, Category = "LoginAndRegister")
 	TSubclassOf<URegisterWidget> RegisterWidgetClass;
+
+	UPROPERTY(EditAnywhere, Category = "LoginAndRegister")
+	FName MenuMapName;
 };

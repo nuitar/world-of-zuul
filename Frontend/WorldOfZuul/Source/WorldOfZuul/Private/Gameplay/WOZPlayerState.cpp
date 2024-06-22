@@ -133,6 +133,16 @@ int32 AWOZPlayerState::GetCurrentWeight(UWOZGameplayData* GameplayData)
 	return WeightSum;
 }
 
+void AWOZPlayerState::SetMaxWeight(int32 Weight)
+{
+	MaxWeight = Weight;
+
+	if (HasAuthority())
+	{
+		OnMaxWeightUpdated.Broadcast(this);
+	}
+}
+
 void AWOZPlayerState::AddMaxWeight(int32 Add)
 {
 	MaxWeight += Add;

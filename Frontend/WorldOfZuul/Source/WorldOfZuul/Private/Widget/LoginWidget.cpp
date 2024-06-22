@@ -91,11 +91,8 @@ void ULoginWidget::OnLoginResponseReceived(FHttpRequestPtr Request, FHttpRespons
 			UWOZGameInstance* GameInstance = UWOZGameInstance::Get(this);
 			check(GameInstance);
 			GameInstance->Username = EditableTextBox_Username->GetText();
-
-			UE_LOG(LogTemp, Log, TEXT("用户已登录。用户名：%s。"), *EditableTextBox_Username->GetText().ToString());
-
-			//测试，会删
-			UGameplayStatics::OpenLevel(this, FName("GameMap"));
+			
+			UGameplayStatics::OpenLevel(this, MenuMapName);
 		}
 		else
 		{

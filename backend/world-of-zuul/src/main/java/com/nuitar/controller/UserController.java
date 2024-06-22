@@ -1,6 +1,7 @@
 package com.nuitar.controller;
 
 import com.nuitar.pojo.DTO.QuerySaveDTO;
+import com.nuitar.pojo.DTO.QueryScoreDTO;
 import com.nuitar.pojo.DTO.UserEnollDTO;
 import com.nuitar.pojo.DTO.UserLoginDTO;
 import com.nuitar.pojo.UserScore;
@@ -38,24 +39,33 @@ public class UserController {
         return Result.success();
     }
 
-    @PostMapping("/save/{userId}")
-    public Result getData(@PathVariable int userId){
-        SaveGameUser saveGameUser = userService.queryData(userId);
+//    @PostMapping("/save/{userId}")
+//    public Result getData(@PathVariable int userId){
+//        SaveGameUser saveGameUser = userService.queryData(userId);
+//
+//        return Result.success(saveGameUser);
+//    }
 
+    @PostMapping("/save/query")
+    public Result getData(@RequestBody QuerySaveDTO querySaveDTO){
+        SaveGameUser saveGameUser = userService.queryData(querySaveDTO.getUserId());
         return Result.success(saveGameUser);
     }
-
     @PostMapping("/socre")
     public Result addScore(@RequestBody UserScore userScore){
         userService.addScore(userScore);
         return Result.success();
     }
 
-    @PostMapping("/socre/{userId}")
-    public Result queryScore(@PathVariable int userId){
-        List<UserScore> userScores =  userService.queryScore(userId);
+//    @PostMapping("/socre/{userId}")
+//    public Result queryScore(@PathVariable int userId){
+//        List<UserScore> userScores =  userService.queryScore(userId);
+//        return Result.success(userScores);
+//    }
+    @PostMapping("/socre/query")
+    public Result queryScore(@RequestBody QueryScoreDTO queryScoreDTO){
+        List<UserScore> userScores =  userService.queryScore(queryScoreDTO.getUserId());
         return Result.success(userScores);
     }
-
 }
 

@@ -51,7 +51,7 @@ public class UserController {
         SaveGameUser saveGameUser = userService.queryData(querySaveDTO.getUserId());
         return Result.success(saveGameUser);
     }
-    @PostMapping("/socre")
+    @PostMapping("/score")
     public Result addScore(@RequestBody UserScore userScore){
         userService.addScore(userScore);
         return Result.success();
@@ -62,7 +62,7 @@ public class UserController {
 //        List<UserScore> userScores =  userService.queryScore(userId);
 //        return Result.success(userScores);
 //    }
-    @PostMapping("/socre/query")
+    @PostMapping("/score/query")
     public Result queryScore(@RequestBody QueryScoreDTO queryScoreDTO){
         List<UserScore> userScores =  userService.queryScore(queryScoreDTO.getUserId());
         return Result.success(userScores);

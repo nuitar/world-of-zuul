@@ -38,11 +38,16 @@ public:
 	void ExecuteCommand(const FString& Command);
 
 	UFUNCTION(BlueprintCallable, Category = "WOZ")
+	void ExecuteCommand_SaveTarget(const FString& Target);
+
+	UFUNCTION(BlueprintCallable, Category = "WOZ")
 	void ExecuteCommand_ItemTarget(TEnumAsByte<EWOZCommand::Type> Command, TEnumAsByte<EWOZGameItem::Type> Target);
 
 	UFUNCTION(BlueprintCallable, Category = "WOZ")
 	void ExecuteCommand_DirectionTarget(TEnumAsByte<EWOZCommand::Type> Command, TEnumAsByte<EWOZGameRoomDirection::Type> Target);
 
+	void SetGameRemainTime(float RemainTime);
+	
 private:
 	UFUNCTION()
 	void OnCommandCommited(const FText& Text, ETextCommit::Type CommitMethod);
@@ -103,6 +108,9 @@ private:
 	
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> TextBlock_GameData_RoomPosition;
+	
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UTextBlock> TextBlock_GameData_RemainTime;
 	
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> TextBlock_Bag_CurrentWeight;

@@ -28,6 +28,7 @@ void ULoginWidget::NativeConstruct()
 
 	Button_Login->OnReleased.AddDynamic(this, &ULoginWidget::Login);
 	Button_Register->OnReleased.AddDynamic(this, &ULoginWidget::Register);
+	Button_Quit->OnReleased.AddDynamic(this, &ULoginWidget::Quit);
 }
 
 void ULoginWidget::Login()
@@ -70,6 +71,11 @@ void ULoginWidget::Register()
 	}
 }
 
+void ULoginWidget::Quit()
+{
+	UKismetSystemLibrary::QuitGame(this, nullptr, EQuitPreference::Quit, true);
+}
+
 void ULoginWidget::OnLoginResponseReceived(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bRequestSuccessful)
 {
 	SetIsEnabled(true);
@@ -90,8 +96,14 @@ void ULoginWidget::OnLoginResponseReceived(FHttpRequestPtr Request, FHttpRespons
 		{
 			UWOZGameInstance* GameInstance = UWOZGameInstance::Get(this);
 			check(GameInstance);
-			GameInstance->Username = EditableTextBox_Username->GetText();
+
+			const auto& Obj = JsonObject->GetObjectField("data");
 			
+			GameInstance->UserID = Obj->GetIntegerField("id");
+			GameInstance->Username = EditableTextBox_Username->GetText();
+
+			UE_LOG(LogTemp, Log, TEXT("Login id: %d"), GameInstance->UserID);
+
 			UGameplayStatics::OpenLevel(this, MenuMapName);
 		}
 		else

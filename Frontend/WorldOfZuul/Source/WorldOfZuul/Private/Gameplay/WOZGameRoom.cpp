@@ -82,18 +82,22 @@ AWOZGameRoom* AWOZGameRoom::CreateRoom(UObject* WorldContext, const FWOZGameRoom
 	Room->GameplayData = GameplayData;
 	Room->SetRoomInfo(InRoomData.Info);
 	Room->Position = InRoomData.Position;
-	const FVector& BaseLocation = GameplayData->RoomSize * FVector(Room->Position.X, Room->Position.Y, 0);
 	
+	const FVector& BaseLocation = GameplayData->RoomSize * FVector(Room->Position.X, Room->Position.Y, 0);
+	Room->SetActorLocation(BaseLocation);
+	
+	TArray<TEnumAsByte<EWOZGameItem::Type>> ItemsToSpawn;
 	for (const auto& ItemEnum : InRoomData.Items)
 	{
-		AWOZGameItem* Item = AWOZGameItem::CreateItem(Room, ItemEnum.Key, ItemEnum.Value, GameplayData);
+		AWOZGameItem* Item = AWOZGameItem::CreateItem(Room, ItemEnum.Key, FIntPoint(ItemEnum.Value.X, ItemEnum.Value.Y), GameplayData);
 		if (Item)
 		{
 			Room->Items.Emplace(Item);
-			Item->SetActorLocation(BaseLocation + FVector(ItemEnum.Value.X, ItemEnum.Value.Y, 64.f));
+			Item->SetActorLocation(BaseLocation + FVector(ItemEnum.Value.X * GameplayData->ItemSize, ItemEnum.Value.Y * GameplayData->ItemSize, 64.f));
+			Item->SetActorScale3D(FVector(GameplayData->Items.FindRef(ItemEnum.Key).Scale));
 		}
 	}
-	
+
 	return Room;
 }
 

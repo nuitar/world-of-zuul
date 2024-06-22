@@ -102,6 +102,12 @@ void UOverlayWidget::ExecuteCommand(const FString& Command)
 	PlayerController->ExecuteCommand(Command);
 }
 
+void UOverlayWidget::ExecuteCommand_SaveTarget(const FString& Target)
+{
+	check(PlayerController && GameplayData);
+	PlayerController->ExecuteCommand(GameplayData->GetStringCommand(EWOZCommand::Save) + " " + Target);
+}
+
 void UOverlayWidget::ExecuteCommand_ItemTarget(TEnumAsByte<EWOZCommand::Type> Command, TEnumAsByte<EWOZGameItem::Type> Target)
 {
 	check(PlayerController);
@@ -112,6 +118,16 @@ void UOverlayWidget::ExecuteCommand_DirectionTarget(TEnumAsByte<EWOZCommand::Typ
 {
 	check(PlayerController);
 	PlayerController->ExecuteCommand_DirectionTarget(Command, Target);
+}
+
+void UOverlayWidget::SetGameRemainTime(float RemainTime)
+{
+	TextBlock_GameData_RemainTime->SetText(FText::FromString(FString::FromInt((int32)(RemainTime + 0.5f))));
+	
+	if (RemainTime <= 0.01f)
+	{
+		SetVisibility(ESlateVisibility::HitTestInvisible);
+	}
 }
 
 void UOverlayWidget::OnScoreUpdated(AWOZPlayerState* PS)

@@ -3,22 +3,65 @@
 #include "Gameplay/WOZGameMode.h"
 #include "Gameplay/WOZGameInstance.h"
 #include "Gameplay/WOZGameRoom.h"
+#include "Gameplay/WOZPlayerController.h"
+
+AWOZGameMode::AWOZGameMode()
+{
+	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.SetTickFunctionEnable(true);
+}
+
+void AWOZGameMode::Tick(float DeltaSeconds)
+{
+	Super::Tick(DeltaSeconds);
+
+	if (GameRemainTime == 0.f) return;
+	
+	GameRemainTime = FMath::Max(GameRemainTime - DeltaSeconds, 0.f);
+	if (GameRemainTime == 0.f)
+	{
+		for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
+		{
+			AWOZPlayerController* PlayerController = Cast<AWOZPlayerController>(It->Get());
+			if (PlayerController)
+			{
+				PlayerController->OnGameEnded();
+			}
+		}
+	}
+	else
+	{
+		for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
+		{
+			AWOZPlayerController* PlayerController = Cast<AWOZPlayerController>(It->Get());
+			if (PlayerController)
+			{
+				PlayerController->OnGameRemainTimeTick(GameRemainTime);
+			}
+		}
+	}
+}
 
 void AWOZGameMode::InitGame(const FString& MapName, const FString& Options, FString& ErrorMessage)
 {
 	Super::InitGame(MapName, Options, ErrorMessage);
+
+	check(GameplayData);
 	
 	if (GetNetMode() == NM_Standalone)
 	{
 		UWOZGameInstance* GameInstance = Cast<UWOZGameInstance>(GetGameInstance());
 		check(GameInstance);
 
-		if (!GameInstance->bIsNewGame) return;
-		
-		GenerateMap(GameInstance->SinglePlayerSaveGameData.RoomDatas);
-		return;
+		if (!GameInstance->bIsNewGame)
+		{
+			GameRemainTime = GameInstance->SinglePlayerSaveGameData.GameRemainTime;
+			GenerateMap(GameInstance->SinglePlayerSaveGameData.RoomDatas);
+			return;
+		}
 	}
 
+	GameRemainTime = GameplayData->GameTimeSeconds;
 	GenerateMap(FIntPoint(4, 4));
 }
 

@@ -58,24 +58,27 @@ void AWOZPlayerController::OnPossess(APawn* InPawn)
 		UWOZGameInstance* GameInstance = Cast<UWOZGameInstance>(GetGameInstance());
 		check(GameInstance);
 
-		if (!GameInstance->bIsNewGame) return;
-		
-		AWOZGameMode* GameMode = Cast<AWOZGameMode>(GetWorld()->GetAuthGameMode());
-		check(GameMode);
-
-		CommandReplyMsgs = GameInstance->SinglePlayerSaveGameData.CommandReplyMsgs;
-		for (const FWOZCommandReplyMsg& CommandReplyMsg : CommandReplyMsgs)
+		if (!GameInstance->bIsNewGame)
 		{
-			OverlayWidget->AddCommandReplyMsg(CommandReplyMsg);
+			AWOZGameMode* GameMode = Cast<AWOZGameMode>(GetWorld()->GetAuthGameMode());
+			check(GameMode);
+
+			CommandReplyMsgs = GameInstance->SinglePlayerSaveGameData.CommandReplyMsgs;
+			for (const FWOZCommandReplyMsg& CommandReplyMsg : CommandReplyMsgs)
+			{
+				OverlayWidget->AddCommandReplyMsg(CommandReplyMsg);
+			}
+		
+			WOZPlayerState->AddBagItems(GameInstance->SinglePlayerSaveGameData.BagItems);
+			WOZPlayerState->AddScore(GameInstance->SinglePlayerSaveGameData.GameScore);
+			WOZPlayerState->RoomPositionHistory = GameInstance->SinglePlayerSaveGameData.RoomPositionHistory;
+			WOZPlayerState->RoomPositionHistory.Pop();
+			WOZPlayerState->PushRoomPosition(GameInstance->SinglePlayerSaveGameData.RoomPositionHistory.Last());
+			WOZPlayerState->SetMaxWeight(GameInstance->SinglePlayerSaveGameData.MaxWeight);
+		
+			GotoRoom(GameMode->GetRoomByPosition(WOZPlayerState->GetCurrentRoomPosition()));
+			GetPawn()->SetActorTransform(GameInstance->SinglePlayerSaveGameData.PlayerTransform);
 		}
-		
-		WOZPlayerState->AddBagItems(GameInstance->SinglePlayerSaveGameData.BagItems);
-		WOZPlayerState->AddScore(GameInstance->SinglePlayerSaveGameData.GameScore);
-		WOZPlayerState->RoomPositionHistory = GameInstance->SinglePlayerSaveGameData.RoomPositionHistory;
-		WOZPlayerState->SetMaxWeight(GameInstance->SinglePlayerSaveGameData.MaxWeight);
-		
-		GotoRoom(GameMode->GetRoomByPosition(WOZPlayerState->GetCurrentRoomPosition()));
-		GetPawn()->SetActorTransform(GameInstance->SinglePlayerSaveGameData.PlayerTransform);
 	}
 }
 
@@ -262,7 +265,24 @@ void AWOZPlayerController::ExecuteCommand_Implementation(const FString& CommandS
 		break;
 		
 	case EWOZCommand::Save:
-		CommandSave();
+		if (Target.ToLower() == FString("game"))
+		{
+			CommandSaveGame();
+			return;
+		}
+		if (Target.ToLower() == FString("settings"))
+		{
+			CommandSaveSetting();
+			Msg.Reply = FText::FromString(TEXT("游戏设置已保存。"));
+		}
+		else
+		{
+			Msg.Reply = FText::FromString(TEXT("你并未指定有效的保存目标。"));
+		}
+		break;
+	case EWOZCommand::Quit:
+		CommandQuit();
+		UGameplayStatics::OpenLevel(this, MenuMapName);
 		return;
 		
 	default: ;
@@ -301,6 +321,91 @@ void AWOZPlayerController::ExecuteCommand_DirectionTarget(TEnumAsByte<EWOZComman
 	}
 	
 	ExecuteCommand(CommandString);
+}
+
+void AWOZPlayerController::OnGameRemainTimeTick(float RemainTime)
+{
+	if (OverlayWidget)
+	{
+		OverlayWidget->SetGameRemainTime(RemainTime);
+	}
+}
+
+void AWOZPlayerController::OnGameEnded()
+{
+	check(WOZPlayerState);
+	UWOZGameInstance* GameInstance = Cast<UWOZGameInstance>(GetGameInstance());
+	check(GameInstance);
+
+	SaveClear();
+	
+	//保存对局记录
+	FWOZGameHistoryData GameHistoryData;
+	GameHistoryData.GameScore = WOZPlayerState->GetGameScore();
+	FString GameHistoryDataStr;
+	FJsonObjectConverter::UStructToJsonObjectString(GameHistoryData, GameHistoryDataStr);
+	
+	TSharedRef<IHttpRequest> Request = FHttpModule::Get().CreateRequest();
+	TSharedPtr<FJsonObject> JsonObject = MakeShareable(new FJsonObject);
+	JsonObject->SetNumberField("userId", GameInstance->UserID);
+	JsonObject->SetStringField("gameHistoryData", GameHistoryDataStr);
+
+	FString RequestBody;
+	TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&RequestBody);
+	FJsonSerializer::Serialize(JsonObject.ToSharedRef(), Writer);
+	Request->SetHeader("Content-Type", "application/json;charset=UTF-8");
+	Request->SetContentAsString(RequestBody);
+	Request->SetURL(SaveHistoryURL);
+	Request->SetVerb("POST");
+	Request->ProcessRequest();
+	
+	OnGameEnded_Client();
+	
+	FWOZCommandReplyMsg Msg;
+	Msg.Command = FText::FromString("game ended");
+	FString Str = TEXT("游戏结束。\n");
+	Str += TEXT("你的最终得分是：\n");
+	Str += FString::FromInt(WOZPlayerState->GetGameScore());
+	Str += TEXT("。\n你会在5秒后返回菜单。");
+	Msg.Reply = FText::FromString(Str);
+	ReplyCommand(Msg);
+}
+
+void AWOZPlayerController::SaveClear()
+{
+	UWOZGameInstance* GameInstance = Cast<UWOZGameInstance>(GetGameInstance());
+	check(GameInstance);
+	
+	TSharedRef<IHttpRequest> Request = FHttpModule::Get().CreateRequest();
+
+	TSharedPtr<FJsonObject> JsonObject = MakeShareable(new FJsonObject);
+	JsonObject->SetNumberField("userId", GameInstance->UserID);
+	JsonObject->SetStringField("savegamedata", FString());
+
+	FString RequestBody;
+	TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&RequestBody);
+	FJsonSerializer::Serialize(JsonObject.ToSharedRef(), Writer);
+
+	Request->SetHeader("Content-Type", "application/json;charset=UTF-8");
+	Request->SetContentAsString(RequestBody);
+	Request->SetURL(SaveGameURL);
+	Request->SetVerb("POST");
+	
+	Request->ProcessRequest();
+}
+
+void AWOZPlayerController::OnGameEnded_Client_Implementation()
+{
+	DisableInput(this);
+	
+	FTimerHandle TimerHandle;
+	GetWorldTimerManager().SetTimer(
+		TimerHandle,
+		FTimerDelegate::CreateLambda([&]
+			{
+				if (!this) return;
+				UGameplayStatics::OpenLevel(this, MenuMapName);
+			}),5.f, false);
 }
 
 void AWOZPlayerController::ReplyCommand_Implementation(const FWOZCommandReplyMsg& Msg)
@@ -971,7 +1076,7 @@ FText AWOZPlayerController::CommandItem()
 	return FText::FromString(Str);
 }
 
-void AWOZPlayerController::CommandSave()
+void AWOZPlayerController::CommandSaveGame()
 {
 	//序列化保存
 	check(GameplayData && WOZPlayerState);
@@ -989,10 +1094,11 @@ void AWOZPlayerController::CommandSave()
 	}
 	SaveGameData.CommandReplyMsgs = CommandReplyMsgs;
 	SaveGameData.PlayerTransform = GetPawn()->GetActorTransform();
-	SaveGameData.GameScore = WOZPlayerState->GetScore();
+	SaveGameData.GameScore = WOZPlayerState->GetGameScore();
 	SaveGameData.RoomPositionHistory = WOZPlayerState->GetRoomPositionHistory();
 	SaveGameData.BagItems = WOZPlayerState->GetBagItems();
 	SaveGameData.MaxWeight = WOZPlayerState->GetMaxWeight();
+	SaveGameData.GameRemainTime = GameMode->GetRemainTime();
 	
 	FString Str;
 	FJsonObjectConverter::UStructToJsonObjectString(SaveGameData, Str);
@@ -1000,8 +1106,8 @@ void AWOZPlayerController::CommandSave()
 	TSharedRef<IHttpRequest> Request = FHttpModule::Get().CreateRequest();
 
 	TSharedPtr<FJsonObject> JsonObject = MakeShareable(new FJsonObject);
-	JsonObject->SetStringField("username", GameInstance->Username.ToString());
-	JsonObject->SetStringField("savegamedata", Str);
+	JsonObject->SetNumberField("userId", GameInstance->UserID);
+	JsonObject->SetStringField("saveGameData", Str);
 
 	FString RequestBody;
 	TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&RequestBody);
@@ -1010,11 +1116,22 @@ void AWOZPlayerController::CommandSave()
 	Request->OnProcessRequestComplete().BindUObject(this, &AWOZPlayerController::OnSaveResponseReceived);
 	Request->SetHeader("Content-Type", "application/json;charset=UTF-8");
 	Request->SetContentAsString(RequestBody);
-	Request->SetURL(SaveURL);
+	Request->SetURL(SaveGameURL);
 	Request->SetVerb("POST");
 	
 	Request->ProcessRequest();
 }
+
+void AWOZPlayerController::CommandQuit_Implementation()
+{
+	UGameplayStatics::OpenLevel(this, MenuMapName);
+}
+
+void AWOZPlayerController::CommandSaveSetting_Implementation()
+{
+	
+}
+
 
 AWOZGameItem* AWOZPlayerController::GetNearestItem(EWOZGameItem::Type ItemEnum, AWOZGameRoom* Room) const
 {
@@ -1071,7 +1188,7 @@ FText AWOZPlayerController::TeleportRandom()
 void AWOZPlayerController::OnSaveResponseReceived(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bRequestSuccessful)
 {
 	FWOZCommandReplyMsg Msg;
-	Msg.Command = FText::FromString(GameplayData->GetStringCommand(EWOZCommand::Save));
+	Msg.Command = FText::FromString(GameplayData->GetStringCommand(EWOZCommand::Save) + " game");
 
 	if (!bRequestSuccessful || !Response.IsValid() || !EHttpResponseCodes::IsOk(Response->GetResponseCode()))
 	{

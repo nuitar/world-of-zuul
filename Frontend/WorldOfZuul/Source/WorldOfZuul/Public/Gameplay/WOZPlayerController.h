@@ -23,7 +23,7 @@ UCLASS()
 class WORLDOFZUUL_API AWOZPlayerController : public APlayerController
 {
 	GENERATED_BODY()
-
+	
 public:
 	UFUNCTION(Server, Reliable)
 	void ExecuteCommand(const FString& CommandStr);
@@ -37,6 +37,12 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "WOZ")
 	void ExecuteCommand_DirectionTarget(TEnumAsByte<EWOZCommand::Type> Command, TEnumAsByte<EWOZGameRoomDirection::Type> Target);
 
+	void OnGameRemainTimeTick(float RemainTime);
+	void OnGameEnded();
+	void SaveClear();
+
+	UFUNCTION(Client, Reliable)
+	void OnGameEnded_Client();
 	
 protected:
 	virtual void OnPossess(APawn* InPawn) override;
@@ -46,8 +52,6 @@ protected:
 
 	UFUNCTION(Server, Reliable)
 	void Interact();
-	
-	
 
 private:
 	void SetupInput();
@@ -67,8 +71,14 @@ private:
 	FText CommandEat(const FString& Target);
 	FText CommandLook();
 	FText CommandItem();
-	void CommandSave();
+	void CommandSaveGame();
 
+	UFUNCTION(Client, Reliable)
+	void CommandQuit();
+
+	UFUNCTION(Client, Reliable)
+	void CommandSaveSetting();
+	
 	AWOZGameItem* GetNearestItem(EWOZGameItem::Type ItemEnum, AWOZGameRoom* Room) const;
 	UFUNCTION(NetMulticast, Reliable)
 	void GotoRoom(AWOZGameRoom* Room);
@@ -102,8 +112,16 @@ private:
 	UPROPERTY(EditAnywhere, Category = "WOZ")
 	TObjectPtr<UWOZGameplayData> GameplayData;
 	
+	UPROPERTY(EditAnywhere, Category = "WOZ")
+	FName MenuMapName;
+	
 	UPROPERTY(EditAnywhere, Category = "WOZ|HTTP")
-	FString SaveURL;
+	FString SaveGameURL;
+
+	UPROPERTY(EditAnywhere, Category = "WOZ|HTTP")
+	FString SaveHistoryURL;
+	
+
 	
 	UPROPERTY()
 	TArray<FWOZCommandReplyMsg> CommandReplyMsgs;

@@ -4,6 +4,7 @@ import lombok.Data;
 
 @Data
 public class SaveGameUser {
-    private String username;
-    private String savegamedata;
+    private int id;
+    private int userId;
+    private String saveGameData;
 }

@@ -19,6 +19,7 @@ public:
 	static UWOZGameInstance* Get(const UObject* WorldContext);
 
 public:
+	int32 UserID = 0;
 	FText Username;
 
 	bool bIsNewGame = true;

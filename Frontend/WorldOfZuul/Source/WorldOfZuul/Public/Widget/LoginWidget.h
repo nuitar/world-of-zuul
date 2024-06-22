@@ -30,7 +30,10 @@ private:
 
 	UFUNCTION()
 	void Register();
-
+	
+	UFUNCTION()
+	void Quit();
+	
 	void OnLoginResponseReceived(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bRequestSuccessful);
 
 protected:
@@ -45,6 +48,9 @@ protected:
 
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UButton> Button_Register;
+
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UButton> Button_Quit;
 
 protected:
 	UPROPERTY(EditAnywhere, Category = "LoginAndRegister")

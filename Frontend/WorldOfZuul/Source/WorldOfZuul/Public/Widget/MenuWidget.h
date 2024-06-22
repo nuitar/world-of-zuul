@@ -4,9 +4,11 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
+#include "Gameplay/WOZGameplayData.h"
 #include "Interfaces/IHttpRequest.h"
 #include "MenuWidget.generated.h"
 
+class UGameHistoryWidget;
 class UDialogWidget;
 class UButton;
 
@@ -24,16 +26,28 @@ public:
 private:
 	UFUNCTION()
 	void SinglePlayer();
+
+	UFUNCTION()
+	void GameHistory();
+
+	UFUNCTION()
+	void Logout();
 	
 	void SaveClear();	
-	void Load();	
+	void LoadGame();	
+	void LoadHistory();	
+
+	void OnLoadGameResponseReceived(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bRequestSuccessful);
+	void OnLoadHistoryResponseReceived(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bRequestSuccessful);
 
 	void OnSinglePlayerDialogReply(bool bReply);
-	void OnLoadResponseReceived(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bRequestSuccessful);
-	
+
 private:
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UButton> Button_SinglePlayer;
+	
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UButton> Button_GameHistory;
 	
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UButton> Button_Logout;
@@ -43,13 +57,24 @@ private:
 	TSubclassOf<UDialogWidget> DialogWidgetClass;
 
 	UPROPERTY(EditAnywhere, Category = "WOZ")
+	TSubclassOf<UGameHistoryWidget> GameHistoryWidgetClass;
+
+	UPROPERTY(EditAnywhere, Category = "WOZ")
+	FName LoginRegisterMapName;
+	
+	UPROPERTY(EditAnywhere, Category = "WOZ")
 	FName GameMapName;
 	
 	UPROPERTY(EditAnywhere, Category = "WOZ|HTTP")
-	FString SaveURL;
+	FString SaveClearURL;
 	
 	UPROPERTY(EditAnywhere, Category = "WOZ|HTTP")
-	FString LoadURL;
+	FString LoadGameURL;
 
+	UPROPERTY(EditAnywhere, Category = "WOZ|HTTP")
+	FString LoadHistoryURL;
+	
 	FString PrevSaveGameDataStr;
+
+	TArray<FWOZGameHistoryData> GameHistoryDatas;
 };

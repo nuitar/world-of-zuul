@@ -6,6 +6,6 @@ import org.apache.ibatis.annotations.Mapper;
 
 @Mapper
 public interface GameSaveMapper {
-    @Insert("insert into game_save(user_id, data) values ")
+    @Insert("insert into game_save(user_id, data) values (#{username},#{savegamedata})")
      void saveGame(SaveGameUser saveGameUser);
 }

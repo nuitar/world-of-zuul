@@ -35,6 +35,9 @@ private:
 	
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UBorder> Border_Detail;
+
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UTextBlock> TextBlock_Date;
 	
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> TextBlock_Score;

@@ -21,6 +21,10 @@ public class UserController {
     @Autowired
     UserService userService;
 
+    @GetMapping("/ws")
+    public Result websocket(){
+        return Result.success();
+    }
     @PostMapping("/login")
     public Result login(@RequestBody UserLoginDTO userLoginDTO){
         User user = userService.login(userLoginDTO);

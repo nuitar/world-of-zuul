@@ -72,6 +72,7 @@ private:
 	FText CommandLook();
 	FText CommandItem();
 	void CommandSaveGame();
+	FText CommandHelp();
 
 	UFUNCTION(Client, Reliable)
 	void CommandQuit();

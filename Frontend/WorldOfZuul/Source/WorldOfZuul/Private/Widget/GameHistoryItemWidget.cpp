@@ -1,7 +1,6 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "Widget/GameHistoryItemWidget.h"
-
 #include "Components/Border.h"
 #include "Components/Button.h"
 #include "Components/TextBlock.h"
@@ -22,6 +21,7 @@ UGameHistoryItemWidget* UGameHistoryItemWidget::CreateGameHistoryItemWidget(TSub
 	UGameHistoryItemWidget* GameHistoryItemWidget = CreateWidget<UGameHistoryItemWidget>(Parent, Class);
 	check(GameHistoryItemWidget);
 
+	GameHistoryItemWidget->TextBlock_Date->SetText(FText::FromString(GameHistoryData.DateString));
 	GameHistoryItemWidget->TextBlock_Score->SetText(FText::FromString(FString::FromInt(GameHistoryData.GameScore)));
 	
 	return GameHistoryItemWidget;

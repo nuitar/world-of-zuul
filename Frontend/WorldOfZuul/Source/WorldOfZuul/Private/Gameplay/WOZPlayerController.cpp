@@ -26,6 +26,8 @@
 void AWOZPlayerController::OnPossess(APawn* InPawn)
 {
 	Super::OnPossess(InPawn);
+
+	check(GameplayData);
 	
 	WOZPlayerState = GetPlayerState<AWOZPlayerState>();
 
@@ -48,16 +50,17 @@ void AWOZPlayerController::OnPossess(APawn* InPawn)
 
 			OverlayWidget->SetRenderTarget(RenderTarget2D);
 		}
+
 	
 		SetupInput();
 		SetShowMouseCursor(true);
 	}
-
+	
+	UWOZGameInstance* GameInstance = Cast<UWOZGameInstance>(GetGameInstance());
+	check(GameInstance);	
+	
 	if (GetNetMode() == NM_Standalone)
 	{
-		UWOZGameInstance* GameInstance = Cast<UWOZGameInstance>(GetGameInstance());
-		check(GameInstance);
-
 		if (!GameInstance->bIsNewGame)
 		{
 			AWOZGameMode* GameMode = Cast<AWOZGameMode>(GetWorld()->GetAuthGameMode());
@@ -78,8 +81,19 @@ void AWOZPlayerController::OnPossess(APawn* InPawn)
 		
 			GotoRoom(GameMode->GetRoomByPosition(WOZPlayerState->GetCurrentRoomPosition()));
 			GetPawn()->SetActorTransform(GameInstance->SinglePlayerSaveGameData.PlayerTransform);
+
+			return;
 		}
 	}
+	
+	WOZPlayerState->SetMaxWeight(GameplayData->PlayerDefaultMaxWeight);
+	FWOZCommandReplyMsg Msg;
+	Msg.Command = FText::FromString(TEXT("welcome"));
+	FString Str = TEXT("欢迎来到World of Zuul。");
+	Str += TEXT("\n输入\"help\"或使用快捷指令查看帮助。");
+	Str += TEXT("\n祝您游戏愉快。");
+	Msg.Reply = FText::FromString(Str);
+	ReplyCommand(Msg);
 }
 
 void AWOZPlayerController::OnRep_PlayerState()
@@ -280,6 +294,11 @@ void AWOZPlayerController::ExecuteCommand_Implementation(const FString& CommandS
 			Msg.Reply = FText::FromString(TEXT("你并未指定有效的保存目标。"));
 		}
 		break;
+		
+	case EWOZCommand::Help:
+		Msg.Reply = CommandHelp();
+		break;
+		
 	case EWOZCommand::Quit:
 		CommandQuit();
 		UGameplayStatics::OpenLevel(this, MenuMapName);
@@ -1120,6 +1139,20 @@ void AWOZPlayerController::CommandSaveGame()
 	Request->SetVerb("POST");
 	
 	Request->ProcessRequest();
+}
+
+FText AWOZPlayerController::CommandHelp()
+{
+	FString Str = TEXT("你可以使用W,A,S,D进行移动。");
+	Str += TEXT("\n你可以按下\"F\"键与身边物体交互。");
+	Str += TEXT("\n你可以使用快捷指令进行游戏。");
+	Str += TEXT("\n你所保存的游戏将会被存储在服务器中。");
+	Str += TEXT("\n开启宝箱会随机获得分数。");
+	Str += TEXT("\n食用物品会获得加成效果。");
+	Str += TEXT("\n在游戏倒计时结束前的得分越高，成绩越好。");
+	Str += TEXT("\n祝您游戏愉快。");
+	
+	return FText::FromString(Str);
 }
 
 void AWOZPlayerController::CommandQuit_Implementation()

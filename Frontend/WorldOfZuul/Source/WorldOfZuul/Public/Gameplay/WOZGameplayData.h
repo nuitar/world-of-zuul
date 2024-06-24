@@ -25,6 +25,7 @@ namespace EWOZCommand
 		Look,
 		Item,
 		Save,
+		Help,
 		Quit,
 	};
 }
@@ -207,6 +208,9 @@ struct FWOZGameHistoryData
 	GENERATED_BODY()
 	
 	UPROPERTY()
+	FString DateString;
+	
+	UPROPERTY()
 	int32 GameScore = 0;
 };
 
@@ -238,10 +242,13 @@ public:
 
 	
 public:
-	UPROPERTY(EditAnywhere, Category = "WOZ|Command")
+	UPROPERTY(EditAnywhere, Category = "WOZ|Global")
+	FIntPoint GameMapHalfSize = FIntPoint(4, 4);
+	
+	UPROPERTY(EditAnywhere, Category = "WOZ|Global")
 	float GameTimeSeconds = 180.f;
 	
-	UPROPERTY(EditAnywhere, Category = "WOZ|Command")
+	UPROPERTY(EditAnywhere, Category = "WOZ")
 	TMap<FString, TEnumAsByte<EWOZCommand::Type>> StringCommands;
 	
 	UPROPERTY(EditAnywhere, Category = "WOZ|Command")
@@ -249,6 +256,9 @@ public:
 
 	UPROPERTY(EditAnywhere, Category = "WOZ|Player")
 	float PlayerSize = 100.f;
+
+	UPROPERTY(EditAnywhere, Category = "WOZ|Player")
+	int32 PlayerDefaultMaxWeight = 30.f;
 	
 	UPROPERTY(EditAnywhere, Category = "WOZ|Item")
 	float ItemSize = 64.f;

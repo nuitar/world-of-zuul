@@ -62,7 +62,7 @@ void AWOZGameMode::InitGame(const FString& MapName, const FString& Options, FStr
 	}
 
 	GameRemainTime = GameplayData->GameTimeSeconds;
-	GenerateMap(FIntPoint(4, 4));
+	GenerateMap(GameplayData->GameMapHalfSize);
 }
 
 void AWOZGameMode::GenerateMap(const FIntPoint& HalfSize)

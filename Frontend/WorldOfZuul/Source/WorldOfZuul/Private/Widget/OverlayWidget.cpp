@@ -57,11 +57,16 @@ void UOverlayWidget::SetRenderTarget(UTextureRenderTarget2D* InRenderTarget2D)
 void UOverlayWidget::AddCommandReplyMsg(const FWOZCommandReplyMsg& Msg)
 {
 	FString Str = RichTextBlock_Process->GetText().ToString();
-	Str += "\n> " + Msg.Command.ToString() + "\n" + Msg.Reply.ToString();
+	if (!Str.IsEmpty())
+	{
+		Str += "\n> ";
+	}
+	Str += Msg.Command.ToString() + "\n" + Msg.Reply.ToString();
 	RichTextBlock_Process->SetText(FText::FromString(Str));
 
 	if (UScrollBox* ScrollBox = Cast<UScrollBox>(RichTextBlock_Process->GetParent()))
 	{
+		ScrollBox->ScrollToStart();
 		ScrollBox->ScrollToEnd();
 	}
 }

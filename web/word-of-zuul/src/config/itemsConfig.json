@@ -104,6 +104,60 @@
             "texture": "room_01",
             "description": "room_01",
             "path": "assets/room/simple_room_01.png"
+        },{
+            "id": 2,
+            "name": "room_02",
+            "texture": "room_02",
+            "description": "room_02",
+            "path": "assets/room/simple_room_02.png"
+        },{
+            "id": 3,
+            "name": "room_03",
+            "texture": "room_03",
+            "description": "room_03",
+            "path": "assets/room/simple_room_03.png"
+        },{
+            "id": 4,
+            "name": "room_04",
+            "texture": "room_04",
+            "description": "room_04",
+            "path": "assets/room/simple_room_04.png"
+        },{
+            "id": 5,
+            "name": "room_05",
+            "texture": "room_05",
+            "description": "room_05",
+            "path": "assets/room/simple_room_05.png"
+        },{
+            "id": 6,
+            "name": "room_06",
+            "texture": "room_06",
+            "description": "room_06",
+            "path": "assets/room/simple_room_06.png"
+        },{
+            "id": 7,
+            "name": "room_07",
+            "texture": "room_07",
+            "description": "room_07",
+            "path": "assets/room/simple_room_07.png"
+        },{
+            "id": 8,
+            "name": "room_08",
+            "texture": "room_08",
+            "description": "room_08",
+            "path": "assets/room/simple_room_08.png"
+        },{
+            "id": 9,
+            "name": "room_09",
+            "texture": "room_09",
+            "description": "room_09",
+            "path": "assets/room/simple_room_09.png"
+        },{
+            "id": 10,
+            "name": "transition_room",
+            "texture": "transition_room",
+            "description": "transition_room",
+            "path": "assets/room/transition_room.png"
         }
     ],
     "players": [

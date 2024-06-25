@@ -19,7 +19,7 @@ export class Game extends Scene {
 
     preload() {
         this.load.image("gem", "assets/gem.png");
-
+        this.load.html("nameform", "assets/loginform.html");
         for (let i = 0; i < components.length; i++) {
             this.load.image(components[i].texture, components[i].path);
         }
@@ -34,11 +34,11 @@ export class Game extends Scene {
     }
 
     create() {
+        this.initForm();
+
         this.otherPlayers = new Map();
 
-        this.add.image(512, 384, "room_01").setScale(0.8);
-        this.physics.world.setBounds(130, 60, 780, 700);
-
+        this.initRoom();
         this.initGem();
 
         this.boxes = this.physics.add.staticGroup();
@@ -64,7 +64,6 @@ export class Game extends Scene {
         );
         this.loadConfigFile();
         this.initBag();
-        this.initWebSocket();
         this.cursors = this.input.keyboard.createCursorKeys();
     }
 
@@ -75,11 +74,50 @@ export class Game extends Scene {
     update() {
         this.keyboardMove();
         this.synchPlayer();
-        // console.log(this.player.x, this.player.y);
+        console.log(this.player.x, this.player.y);
     }
 
     openBox(player, box) {
         box.setTexture("silver_box_open"); // 更改平台的图片
+    }
+
+    initForm() {
+        const element = this.add.dom(512, 384).createFromCache("nameform");
+
+        element.setPerspective(800);
+
+        element.addListener("click");
+
+        element.on("click", function (event) {
+            if (event.target.name === "createRoomButton") {
+                const roomId = this.getChildByName("roomId");
+                if (roomId.value !== "") {
+                    let roomIdValue = roomId.value;
+                    this.removeListener("click");
+                    element.setVisible(false);
+                    this.scene.initWebSocket(roomIdValue);
+                    
+                }
+            } if(event.target.name === "quitButton"){
+                this.removeListener("click");
+                element.setVisible(false);
+            }
+        });
+    }
+    initRoom() {
+        let init_x = 512,
+            init_y = 355;
+        this.room = this.add.image(init_x, init_y, "room_01").setScale(0.7);
+        this.physics.world.setBounds(235, 109, 556, 520);
+        this.newRoom();
+    }
+
+    newRoom() {
+        const randomIndex = Math.floor(Math.random() * rooms.length);
+
+        // 获取随机元素
+        const room = rooms[randomIndex];
+        this.room.setTexture(room.texture);
     }
 
     initGem() {
@@ -209,9 +247,9 @@ export class Game extends Scene {
             this.player.setVelocityY(0);
         }
     }
-    initWebSocket() {
+    initWebSocket(roomIdValue) {
         const uuid = this.player.name;
-        this.socket = new WebSocket("ws://localhost:7070/ws/" + uuid);
+        this.socket = new WebSocket("ws://localhost:7070/ws/" + roomIdValue + "/" + uuid);
         this.socketConnect = false;
 
         this.socket.onopen = function (event) {
@@ -248,7 +286,10 @@ export class Game extends Scene {
                     .setPosition(player_json.x, player_json.y);
                 // console.log(this.otherPlayers.get(player_json.name));
             } else {
-                this.otherPlayers.set(player_json.name, this.parseToSinglePlayer(player_json));
+                this.otherPlayers.set(
+                    player_json.name,
+                    this.parseToSinglePlayer(player_json)
+                );
             }
         }
         if (json_data.length <= this.otherPlayers.size) {
@@ -260,7 +301,6 @@ export class Game extends Scene {
                 }
             }
         }
-
     }
 
     parseToSinglePlayer(player_json) {
@@ -284,7 +324,7 @@ export class Game extends Scene {
         return otherPlayer;
     }
     synchPlayer() {
-        console.log(this.otherPlayers.size);
+        // console.log(this.otherPlayers.size);
         if (this.socketConnect) this.socket.send(this.playerToJson());
     }
 

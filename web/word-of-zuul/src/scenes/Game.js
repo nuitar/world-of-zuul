@@ -1,4 +1,4 @@
-import { Scene } from "phaser";
+import { NONE, Scene } from "phaser";
 import { Item } from "../entity/itmes";
 import { Player } from "../entity/player";
 import { components, rooms, players } from "../config/itemsConfig.json";
@@ -13,8 +13,13 @@ export class Game extends Scene {
      *  @type {Phaser.Physics.Arcade.StaticGroup}
      */
     boxes;
+    row;
+    col;
     constructor() {
         super("Game");
+        this.row = -1;
+        this.col = -1;
+        this.i = 0;
     }
 
     preload() {
@@ -43,15 +48,10 @@ export class Game extends Scene {
 
         this.boxes = this.physics.add.staticGroup();
         this.boxes.create(200, 500, "silver_box").setScale(0.1).refreshBody();
-
+        let uid = this.generateUUID();
+        this.gem.data.values.uid = uid;
         // this.player = this.physics.add.sprite(512, 384, "player_0");
-        this.player = new Player(
-            this,
-            512,
-            384,
-            "player_0",
-            this.generateUUID()
-        );
+        this.player = new Player(this, 512, 384, "player_0", uid);
 
         this.player.setCollideWorldBounds(true);
         this.player.setScale(0.1);
@@ -62,6 +62,11 @@ export class Game extends Scene {
             null,
             this
         );
+
+        this.physics.world.setBounds(0, 0, 1024, 1024);
+        this.cameras.main.setBounds(0, 0, 1024, 1024);
+        this.cameras.main.startFollow(this.player, true, 0.05, 0.05);
+
         this.loadConfigFile();
         this.initBag();
         this.cursors = this.input.keyboard.createCursorKeys();
@@ -74,11 +79,58 @@ export class Game extends Scene {
     update() {
         this.keyboardMove();
         this.synchPlayer();
+        this.nextRoom(this.player.x, this.player.y);
+        // this.updateRainbowText();
         console.log(this.player.x, this.player.y);
     }
 
+    nextRoom(x, y) {
+        /**
+         * 447.6500000000004 190.84999999999883
+575.6500000000015 190.84999999999883
+
+左边 146.31666666666683 604.183333333333
+146.31666666666683 470.84999999999945
+
+下边
+426.316666666667 865.5166666666627
+580.9833333333347 865.5166666666627
+
+右边
+858.3166666666641 598.8499999999998
+858.3166666666641 476.1833333333328
+         */
+        let flag = false;
+        if (x > 447 && x < 575 && y < 190) {
+            this.row -= 1;
+            flag = true;
+            this.gem.data.values.row -= 1;
+        } else if (x < 146 && y > 470 && y < 604) {
+            this.col -= 1;
+            flag = true;
+            this.gem.data.values.col -= 1;
+        } else if (x > 426 && x < 580 && y > 865) {
+            this.row += 1;
+            flag = true;
+            this.gem.data.values.row += 1;
+        } else if (x > 858 && y > 476 && y < 598) {
+            this.col += 1;
+            flag = true;
+            this.gem.data.values.col += 1;
+        }
+        if (flag) {
+            this.player.setPosition(512, 512);
+            for (let [key, value] of this.otherPlayers) {
+                value.destroy();
+                this.otherPlayers.delete(key);
+            }
+        }
+    }
+
     openBox(player, box) {
-        box.setTexture("silver_box_open"); // 更改平台的图片
+        if (!box.texture.key.includes("_open")) {
+            box.setTexture(box.texture.key + "_open"); // 更改平台的图片
+        }
     }
 
     initForm() {
@@ -96,9 +148,10 @@ export class Game extends Scene {
                     this.removeListener("click");
                     element.setVisible(false);
                     this.scene.initWebSocket(roomIdValue);
-                    
+                    this.scene.gem.data.values.roomId = roomIdValue;
                 }
-            } if(event.target.name === "quitButton"){
+            }
+            if (event.target.name === "quitButton") {
                 this.removeListener("click");
                 element.setVisible(false);
             }
@@ -106,9 +159,10 @@ export class Game extends Scene {
     }
     initRoom() {
         let init_x = 512,
-            init_y = 355;
-        this.room = this.add.image(init_x, init_y, "room_01").setScale(0.7);
-        this.physics.world.setBounds(235, 109, 556, 520);
+            init_y = 512;
+
+        this.room = this.add.image(0, 0, "room_01").setOrigin(0);
+        // this.physics.world.setBounds(235, 109, 556, 520);
         this.newRoom();
     }
 
@@ -122,36 +176,44 @@ export class Game extends Scene {
 
     initGem() {
         const text = this.add.text(100, 20, "", {
-            font: "16px Courier",
+            font: "20px Courier",
             fill: "#00ff00",
         });
+        this.hsv = Phaser.Display.Color.HSVColorWheel();
+        this.roomLocationText = this.add.text(460, 512, "", {
+            font: "40px Courier",
+            fill: "#fff",
+        });
+        this.roomLocationText.setStroke('#fff', 16);
+        this.roomLocationText.setShadow(2, 2, "#333333", 2, true, true);
+
+
         const gem = this.add.image(70, 50, "gem");
 
         //  Store some data about this Gem:
         gem.setData({
-            name: "Red Gem Stone",
-            level: 2,
+            uid: "Red Gem Stone",
+            roomId: 2,
             owner: "Link",
-            gold: 50,
         });
 
         //  Whenever a data value is updated the `changedata` event is fired and we listen for it:
         gem.on("changedata", function (gameObject, key, value) {
             text.setText([
-                "Name: " + gem.getData("name"),
-                "Level: " + gem.getData("level"),
-                "Value: " + gem.getData("gold") + " gold",
-                "Owner: " + gem.getData("owner"),
+                "UID：" + gem.getData("uid"),
+                "当前房间号：" + gem.getData("roomId"),
+                "当前负重：10",
+                // "Owner: " + gem.getData("owner"),
             ]);
         });
-
+        this.gem = gem;
         //  Change the 'value' property when the mouse is clicked
-        this.input.on("pointerdown", function () {
-            gem.data.values.gold += 50;
-            if (gem.data.values.gold % 200 === 0) {
-                gem.data.values.level++;
-            }
-        });
+        // this.input.on("pointerdown", function () {
+        //     gem.data.values.gold += 50;
+        //     if (gem.data.values.gold % 200 === 0) {
+        //         gem.data.values.level++;
+        //     }
+        // });
     }
 
     initBag() {
@@ -249,18 +311,21 @@ export class Game extends Scene {
     }
     initWebSocket(roomIdValue) {
         const uuid = this.player.name;
-        this.socket = new WebSocket("ws://localhost:7070/ws/" + roomIdValue + "/" + uuid);
+        this.socket = new WebSocket(
+            "ws://localhost:7070/ws/" + roomIdValue + "/" + uuid
+        );
         this.socketConnect = false;
 
         this.socket.onopen = function (event) {
             console.log("WebSocket connection established.");
-            this.socketConnect = true;
         }.bind(this);
+
         // 当接收到服务器消息时触发此事件
         this.socket.onmessage = function (event) {
             // console.log("Message from server: ", event.data);
             // this.otherPlayers = new Map();
-            this.parseJsonToPlayers(event.data);
+            this.parseSyncJson(JSON.parse(event.data));
+            this.socketConnect = true;
         }.bind(this);
 
         // 当连接关闭时触发此事件
@@ -274,16 +339,70 @@ export class Game extends Scene {
         }.bind(this);
     }
 
-    parseJsonToPlayers(data) {
-        let json_data = JSON.parse(event.data).data;
+    parseSyncJson(json) {
+        // if (json.row != this.row || json.col != this.col) {
+        //
+        // }
+        if (this.row == -1 && this.col == -1) {
+            this.row = json.row;
+            this.col = json.col;
+        }
+        this.roomLocationText.setText("(" + json.row + "," + json.col + ")");
+        this.boxes.clear(true, true);
+
+        // console.log(json)
+        this.parseJsonUpdatePlayers(json.players);
+        this.parseJsonUpdateRoomsItems(json.room);
+    }
+
+    parseJsonUpdateRoomsItems(json_data) {
+        this.room.setTexture(json_data.texture);
+        // console.log(json_data.texture);
+        // console.log(this.room.texture.key);
+
+        let items = json_data.items;
+        console.log(items);
+        for (let i = 0; i < items.length; i++) {
+            let box_json = items[i];
+            const specificBox = this.boxes
+                .getChildren()
+                .find((box) => box.x === box_json.x && box.y === box_json.y);
+            if (specificBox) {
+                specificBox.setTexture(box_json.texture);
+                // console.log("更新");
+            } else {
+                // console.log(box_json);
+
+                this.boxes
+                    .create(box_json.x, box_json.y, box_json.texture)
+                    .setScale(0.1)
+                    .refreshBody();
+            }
+        }
+    }
+
+    parseJsonUpdatePlayers(json_data) {
         // console.log(json_data);
         for (let i = 0; i < json_data.length; i++) {
             let player_json = json_data[i];
-            if (player_json.name === this.player.name) continue;
+            if (player_json.name === this.player.name) {
+                this.player.setTexture(player_json.texture);
+                continue;
+            }
+
             if (this.otherPlayers.has(player_json.name)) {
-                this.otherPlayers
-                    .get(player_json.name)
-                    .setPosition(player_json.x, player_json.y);
+                if (
+                    player_json.roomRow != this.row ||
+                    player_json.roomCol != this.col
+                ) {
+                    this.otherPlayers.get(player_json.name).setVisible(false);
+                } else {
+                    this.otherPlayers
+                        .get(player_json.name)
+                        .setPosition(player_json.x, player_json.y)
+                        .setVisible(true);
+                }
+
                 // console.log(this.otherPlayers.get(player_json.name));
             } else {
                 this.otherPlayers.set(
@@ -292,22 +411,13 @@ export class Game extends Scene {
                 );
             }
         }
-        if (json_data.length <= this.otherPlayers.size) {
-            for (let [key, value] of this.otherPlayers) {
-                if (!json_data.includes(value)) {
-                    console.log("删除");
-                    value.destroy();
-                    this.otherPlayers.delete(key);
-                }
-            }
-        }
     }
 
     parseToSinglePlayer(player_json) {
         let otherPlayer = new Player(
             this,
-            512,
-            384,
+            player_json.x,
+            player_json.y,
             player_json.texture,
             player_json.name
         );
@@ -323,21 +433,68 @@ export class Game extends Scene {
         );
         return otherPlayer;
     }
+
     synchPlayer() {
         // console.log(this.otherPlayers.size);
-        if (this.socketConnect) this.socket.send(this.playerToJson());
+        let sendJs = this.toSyncJson();
+        // console.log(sendJs);
+        if (this.socketConnect) this.socket.send(sendJs);
     }
 
-    playerToJson() {
+    toSyncJson() {
+        let json = {
+            room: this.getRoom(),
+            player: this.getPlayer(),
+        };
+        return JSON.stringify(json);
+    }
+
+    getRoom() {
+        let room = {
+            texture: this.room.texture.key,
+            items: this.getBoxes(),
+        };
+        return room;
+    }
+
+    getBoxes() {
+        let boxes = [];
+        this.boxes.getChildren().forEach((box) => {
+            const boxJson = {
+                x: box.x,
+                y: box.y,
+                texture: box.texture.key,
+            };
+            boxes.push(boxJson);
+        });
+        return boxes;
+    }
+
+    getPlayer() {
         let player = {
             x: this.player.x,
             y: this.player.y,
             name: this.player.name,
             texture: this.player.texture.key,
+            roomRow: this.row,
+            roomCol: this.col,
         };
-        return JSON.stringify(player);
+        return player;
     }
 
+    updateRainbowText() {
+        const top = this.hsv[this.i].color;
+        const bottom = this.hsv[359 - this.i].color;
+
+        this.roomLocationText.setTint(top, top, bottom, bottom);
+
+        this.i++;
+
+        if (this.i === 360)
+        {
+            this.i = 0;
+        }
+    }
     generateUUID() {
         let dt = new Date().getTime();
         let uuid = "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(

@@ -1,0 +1,39 @@
+name: Code Format Check
+
+on:
+  push:
+    branches:
+      - main  # 修改为你的默认分支或者其他你希望触发的分支
+
+jobs:
+  check-format:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          path: 'web/word-of-zuul'  # 指定要检查的代码路径，根据你的实际情况修改
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '18.10.0'  # 设置你的 Node.js 版本，可以根据实际需要调整
+
+      - name: Install dependencies
+        run: |
+          cd web/word-of-zuul  # 进入代码目录
+          npm install  # 替换为你的项目依赖安装命令
+
+      - name: Check code formatting
+        run: |
+          cd web/word-of-zuul  # 进入代码目录
+          npm run lint  # 替换为你的代码格式检查命令，比如使用 ESLint 或者其他 lint 工具
+
+      - name: Fail on errors
+        run: |
+          cd web/word-of-zuul  # 进入代码目录
+          if [ $? -ne 0 ]; then
+            echo "Code format check failed. Please fix the errors."
+            exit 1
+          fi

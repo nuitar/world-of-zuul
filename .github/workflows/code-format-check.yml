@@ -21,6 +21,7 @@ jobs:
         run: |
           cd web/word-of-zuul  # 进入代码目录
           npm install  # 替换为你的项目依赖安装命令
+          npm install eslint --save-dev
 
       - name: Check code formatting
         run: |

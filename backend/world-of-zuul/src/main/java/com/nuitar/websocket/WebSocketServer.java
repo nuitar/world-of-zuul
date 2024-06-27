@@ -3,6 +3,7 @@ package com.nuitar.websocket;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.nuitar.pojo.Item;
 import com.nuitar.pojo.Player;
 import com.nuitar.pojo.Room;
 import com.nuitar.pojo.VO.SendDataVO;
@@ -72,10 +73,33 @@ public class WebSocketServer {
         Player oldPlayer = roomIdToUuidToPlayer.get(roomId).get(uuid);
         Room room = syncDataVO.getRoom();
         System.out.println(player);
-        if(player.getRoomCol() == oldPlayer.getRoomCol() && player.getRoomRow() == oldPlayer.getRoomRow()){
-            roomIdToRooms.get(roomId).get(player.getRoomRow()).set(player.getRoomCol(), room);
+        int row = player.getRoomRow(), col = player.getRoomCol();
+        row = Math.min(roomIdToRooms.get(roomId).size(), Math.max(0, row));
+        col = Math.min(roomIdToRooms.get(roomId).size(), Math.max(0, col));
 
-        }else{
+        player.setRoomCol(col);
+        player.setRoomRow(row);
+
+        if (player.getRoomCol() == oldPlayer.getRoomCol() && player.getRoomRow() == oldPlayer.getRoomRow()) {
+            if (roomIdToRooms.get(roomId).get(row).get(col).getItems().size() > room.getItems().size()) {
+                roomIdToRooms.get(roomId).get(row).set(col, room);
+            }
+            boolean flag = false;
+            List<Item> oldItems = roomIdToRooms.get(roomId).get(row).get(col).getItems(), newItems = room.getItems();
+            for (Item oldItem : oldItems) {
+                for (Item newItem : newItems) {
+                    if (oldItem.getX() == newItem.getX() && oldItem.getY() == newItem.getY() && !oldItem.getTexture().equals(newItem.getTexture()) && newItem.getTexture().contains("open")) {
+                        roomIdToRooms.get(roomId).get(row).set(col, room);
+                        flag = true;
+                        break;
+                    }
+                }
+                if (flag == true) {
+                    break;
+                }
+            }
+        } else {
+
             System.out.println("下一个房间");
         }
         roomIdToUuidToPlayer.get(roomId).put(uuid, player);
@@ -109,6 +133,9 @@ public class WebSocketServer {
         System.out.println("连接断开:" + uuid);
 //        sessionMap.remove(uuid);
         roomIdToUuidToPlayer.get(roomId).remove(uuid);
+        if (roomIdToUuidToPlayer.get(roomId).isEmpty()) {
+            roomIdToRooms.remove(roomId);
+        }
     }
 
 

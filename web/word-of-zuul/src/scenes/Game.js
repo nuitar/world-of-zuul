@@ -24,7 +24,7 @@ export class Game extends Scene {
 
     preload() {
         this.load.image("gem", "assets/gem.png");
-        this.load.html("nameform", "assets/createRoom.html");
+        this.load.html("nameform", "assets/html/createRoom.html");
         for (let i = 0; i < components.length; i++) {
             this.load.image(components[i].texture, components[i].path);
         }

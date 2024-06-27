@@ -7,43 +7,70 @@ export class Setting extends Scene {
     }
     preload() {
         this.load.image("thumb", "assets/key/copper_key.png");
+        this.load.audio("canon", ["assets/audio/canon-dylanf.mp3"]);
 
-        this.load.scenePlugin({
-            key: "rexuiplugin",
-            url: "https://raw.githubusercontent.com/rexrainbow/phaser3-rex-notes/master/dist/rexuiplugin.min.js",
-            sceneKey: "rexUI",
-        });
+        this.load.html("gameSetting", "assets/html/gameSetting.html");
     }
 
     create() {
-        let container = this.add.container(400, 300);
-        var slider = new Slider(this.game, {
-            x: 400,
-            y: 300,
-            width: 200,
-            height: 20,
-            orientation: "x", // 水平滑块，'y' 为垂直滑块
-
-            track: this.add.image(0, 0, "background"),
-            thumb: this.add.image(0, 0, "thumb"),
-
-            value: 0, // 初始值
-            gap: 0.1, // 步进值
-
-            valuechangeCallback: function (value) {
-                console.log("Slider value: " + value);
-            },
-
-            space: {
-                top: 4,
-                bottom: 4,
-                left: 4,
-                right: 4,
-            },
+        this.input.on("pointerdown", () => {
+            this.scene.start("MainMenu");
+            this.sound.stopAll();
         });
+        this.initForm();
+        if (this.sound.getAllPlaying().length === 0) {
+            const music = this.sound.add("canon");
+            music.setVolume(0.25);
+            music.play();
+        }
+
+        this.addText(280, 315, "音乐大小");
+        this.addText(280, 380, "人物移速");
+        this.addText(280, 450, "背包负重");
+
+        this.musicVolmeText = this.addText(730, 315, "25");
+        this.moveText = this.addText(730, 380, "160");
+        this.weightText = this.addText(730, 450, "200");
+
+        
     }
 
     update() {
         // 可以在这里添加任何需要的更新逻辑
+    }
+    addText(x, y, text) {
+        let action = this.add
+            .text(x, y, text, {
+                fontFamily: "Arial Black",
+                fontSize: 25,
+                color: "#ffffff",
+                stroke: "#000000",
+                strokeThickness: 5,
+                align: "center",
+            })
+            .setOrigin(0.5);
+        return action;
+    }
+
+    initForm() {
+        const element = this.add.dom(512, 384).createFromCache("gameSetting");
+
+        element.setPerspective(800);
+
+        element.addListener("input");
+
+        element.on("input", function (event) {
+            if (event.target.name === "musicRange") {
+                const musicRange = this.getChildByName("musicRange");
+                console.log(musicRange.value);
+                this.scene.sound.setVolume(musicRange.value / 100);
+                this.scene.musicVolmeText.setText(musicRange.value);
+            }
+            else if (event.target.name === "moveRange") {
+                this.scene.moveText.setText(event.target.value);
+            } else if (event.target.name === "weightRange") {
+                this.scene.weightText.setText(event.target.value); 
+            }
+        });
     }
 }

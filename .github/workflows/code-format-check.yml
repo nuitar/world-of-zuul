@@ -6,25 +6,30 @@ on:
       - master  # 替换为你的默认分支或者其他你希望触发的分支
 
 jobs:
-  check-format:
+  build:
+
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
+    - uses: actions/checkout@v4
+    - name: Set up JDK 18
+      uses: actions/setup-java@v3
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        server-id: github # Value of the distributionManagement/repository/id field of the pom.xml
+        settings-path: ${{ github.workspace }} # location for the settings.xml file
 
-      - name: Set up JDK
-        uses: actions/setup-java@v2
-        with:
-          java-version: '17'  # 设置你的 Java 版本，可以根据实际需要调整
-
-      - name: Run Checkstyle
-        run: 
+    - name: Run Checkstyle
+      run: 
           cd backend/world-of-zuul
           mvn clean verify --fail-never  # 执行 Maven 构建并运行 Checkstyle 检查
 
-      - name: Fail on errors
-        run: |
+    - name: Fail on errors
+      run: |
           if [ $? -ne 0 ]; then
             echo "Code format check failed. Please fix the errors."
             exit 1

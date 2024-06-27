@@ -7,7 +7,8 @@ on:
   push:
     branches:
       - backend  # 替换为你的默认分支或者其他你希望触发的分支
-
+      - dev
+      - master
 jobs:
    checkstyle:
 

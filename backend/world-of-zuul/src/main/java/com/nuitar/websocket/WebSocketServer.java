@@ -39,9 +39,7 @@ public class WebSocketServer {
     @Autowired
     private RedisTemplate redisTemplate;
 
-    /**
-     * 连接建立成功调用的方法
-     */
+
     @OnOpen
     public void onOpen(Session session, @PathParam("roomId") String roomId, @PathParam("uuid") String uuid) throws IOException {
         if (!roomIdToRooms.containsKey(roomId)) {
@@ -57,11 +55,6 @@ public class WebSocketServer {
         System.out.println("房间号:" + roomId + ", 客户端：" + uuid + "建立连接" + ",当前玩家数量:" + roomIdToUuidToPlayer.get(roomId).size());
     }
 
-    /**
-     * 收到客户端消息后调用的方法
-     *
-     * @param message 客户端发送过来的消息
-     */
     @OnMessage
     public void synchPlayers(Session session, String message, @PathParam("roomId") String roomId, @PathParam("uuid") String uuid) throws IOException {
 //        System.out.println("收到来自客户端：" + uuid + "的信息:" + message);
@@ -123,11 +116,7 @@ public class WebSocketServer {
         session.getBasicRemote().sendText(objectMapper.writeValueAsString(data));
     }
 
-    /**
-     * 连接关闭调用的方法
-     *
-     * @param uuid
-     */
+
     @OnClose
     public void onClose(@PathParam("roomId") String roomId, @PathParam("uuid") String uuid) {
         System.out.println("连接断开:" + uuid);

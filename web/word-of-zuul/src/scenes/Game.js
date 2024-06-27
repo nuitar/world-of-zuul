@@ -1,5 +1,5 @@
-import { NONE, Scene } from "phaser";
-import { Item } from "../entity/itmes";
+import { Scene } from "phaser";
+import { BagItem } from "../entity/itmes";
 import { Player } from "../entity/player";
 import { components, rooms, players } from "../config/itemsConfig.json";
 
@@ -24,7 +24,7 @@ export class Game extends Scene {
 
     preload() {
         this.load.image("gem", "assets/gem.png");
-        this.load.html("nameform", "assets/loginform.html");
+        this.load.html("nameform", "assets/createRoom.html");
         for (let i = 0; i < components.length; i++) {
             this.load.image(components[i].texture, components[i].path);
         }
@@ -44,28 +44,27 @@ export class Game extends Scene {
         this.otherPlayers = new Map();
 
         this.initRoom();
-        this.initGem();
+        this.initText();
 
-        this.boxes = this.physics.add.staticGroup();
-        this.boxes.create(200, 500, "silver_box").setScale(0.1).refreshBody();
+        this.roomItems = this.physics.add.staticGroup();
         let uid = this.generateUUID();
         this.gem.data.values.uid = uid;
         // this.player = this.physics.add.sprite(512, 384, "player_0");
-        this.player = new Player(this, 512, 384, "player_0", uid);
+        this.player = new Player(this, 512, 512, "player_0", uid);
 
         this.player.setCollideWorldBounds(true);
         this.player.setScale(0.1);
         this.physics.add.collider(
             this.player,
-            this.boxes,
-            this.openBox,
+            this.roomItems,
+            this.collider,
             null,
             this
         );
 
         this.physics.world.setBounds(0, 0, 1024, 1024);
-        this.cameras.main.setBounds(0, 0, 1024, 1024);
-        this.cameras.main.startFollow(this.player, true, 0.05, 0.05);
+
+        this.initCamera();
 
         this.loadConfigFile();
         this.initBag();
@@ -80,10 +79,14 @@ export class Game extends Scene {
         this.keyboardMove();
         this.synchPlayer();
         this.nextRoom(this.player.x, this.player.y);
+        this.updateText();
         // this.updateRainbowText();
         console.log(this.player.x, this.player.y);
     }
-
+    updateText() {
+        this.gem.data.values.weight = this.player.nowWeight;
+        this.gem.data.values.maxWeight = this.player.maxWeight;
+    }
     nextRoom(x, y) {
         /**
          * 447.6500000000004 190.84999999999883
@@ -119,6 +122,8 @@ export class Game extends Scene {
             this.gem.data.values.col += 1;
         }
         if (flag) {
+            this.fadeIn();
+
             this.player.setPosition(512, 512);
             for (let [key, value] of this.otherPlayers) {
                 value.destroy();
@@ -127,10 +132,100 @@ export class Game extends Scene {
         }
     }
 
-    openBox(player, box) {
-        if (!box.texture.key.includes("_open")) {
+    collider(player, box) {
+        if (
+            box.texture.key.includes("box") &&
+            !box.texture.key.includes("_open")
+        ) {
             box.setTexture(box.texture.key + "_open"); // 更改平台的图片
+        } else if (!box.texture.key.includes("box")) {
+            let children = this.backpackContainer.list;
+            let flag = false;
+            let itemJson;
+            for (let i = 0; i < components.length; i++) {
+                let compoennt = components[i];
+                if (compoennt.texture == box.texture.key) {
+                    itemJson = compoennt;
+                    break;
+                }
+            }
+            if (this.player.nowWeight + itemJson.weight > this.player.maxWeight)
+                return;
+
+            for (let i = 0; i < children.length; i++) {
+                let child = children[i];
+                if (!(child instanceof BagItem)) {
+                    continue;
+                }
+                if (child.texture.key == box.texture.key) {
+                    children[i].updateCount(child.count + 1);
+                    flag = true;
+                    break;
+                }
+            }
+            if (!flag) {
+                this.addToBag(
+                    this.backpackContainer,
+                    (this.backpackContainer.list.length - 36 - 1) / 6,
+                    itemJson
+                );
+            }
+            box.destroy();
         }
+    }
+
+    addToBag(container, index, itemData) {
+        let gridSize = 50;
+        let gridRows = 5;
+        let gridCols = 5;
+
+        let x = -125 + (index % gridCols) * gridSize;
+        let y = -125 + Math.floor(index / gridRows) * gridSize;
+
+        let item = new BagItem(
+            this,
+            this.player,
+            container,
+            x,
+            y,
+            itemData.texture,
+            itemData.name,
+            itemData.weight,
+            itemData.count,
+            itemData.description
+        );
+    }
+
+    fadeIn() {
+        this.fadeInRect = this.add.rectangle(0, 0, 1024, 1024, 0x000000);
+        this.fadeInRect.setOrigin(0, 0);
+        this.fadeInRect.setAlpha(1); // 初始设置为完全透明
+
+        // 创建透明到不透明的 tween 动画
+        // this.fadeIn = () => {
+        this.tweens.add({
+            targets: this.fadeInRect,
+            alpha: 0, // 动画结束时的透明度
+            duration: 1000, // 动画持续时间，单位为毫秒
+            ease: "Linear", // 动画效果
+            onComplete: () => {
+                console.log("Fade-in animation completed");
+                this.fadeInRect.destroy();
+            },
+        });
+    }
+    initCamera() {
+        // 创建一个覆盖整个屏幕的透明矩形
+
+        // };
+        this.fadeIn();
+        this.cameras.main.setBounds(0, 0, 1024, 1024);
+        this.cameras.main.startFollow(this.player, true, 0.05, 0.05);
+
+        // this.cameras.main.fadeFrom(2000, Phaser.Math.Between(50, 255), Phaser.Math.Between(50, 255), Phaser.Math.Between(50, 255));
+        // this.cameras.main.on(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
+        //     this.scene.restart();
+        // });
     }
 
     initForm() {
@@ -158,9 +253,6 @@ export class Game extends Scene {
         });
     }
     initRoom() {
-        let init_x = 512,
-            init_y = 512;
-
         this.room = this.add.image(0, 0, "room_01").setOrigin(0);
         // this.physics.world.setBounds(235, 109, 556, 520);
         this.newRoom();
@@ -174,27 +266,29 @@ export class Game extends Scene {
         this.room.setTexture(room.texture);
     }
 
-    initGem() {
-        const text = this.add.text(100, 20, "", {
-            font: "20px Courier",
-            fill: "#00ff00",
-        });
+    initText() {
+        const text = this.add.text(512, 700, "", {
+            font: "20px Arial",
+        }).setOrigin(0.5,0.5);
+        text.setTintFill(0xff00ff, 0xff00ff, 0x0000ff, 0x0000ff);
+
         this.hsv = Phaser.Display.Color.HSVColorWheel();
         this.roomLocationText = this.add.text(460, 512, "", {
-            font: "40px Courier",
-            fill: "#fff",
+            font: "40px Arial",
         });
-        this.roomLocationText.setStroke('#fff', 16);
-        this.roomLocationText.setShadow(2, 2, "#333333", 2, true, true);
+        // this.roomLocationText.setStroke('#fff', 16);
+        // this.roomLocationText.setShadow(2, 2, "#333333", 2, true, true);
+        this.roomLocationText.setTint(0xff00ff, 0xffff00, 0x0000ff, 0xff0000);
 
-
-        const gem = this.add.image(70, 50, "gem");
+        const gem = this.add.image(270, 700, "gem");
 
         //  Store some data about this Gem:
         gem.setData({
             uid: "Red Gem Stone",
             roomId: 2,
-            owner: "Link",
+            playersCount: 0,
+            weight: 0,
+            maxWeight: 200,
         });
 
         //  Whenever a data value is updated the `changedata` event is fired and we listen for it:
@@ -202,8 +296,11 @@ export class Game extends Scene {
             text.setText([
                 "UID：" + gem.getData("uid"),
                 "当前房间号：" + gem.getData("roomId"),
-                "当前负重：10",
-                // "Owner: " + gem.getData("owner"),
+                "当前在线玩家数量：" + gem.getData("playersCount"),
+                "当前载重：" +
+                    gem.getData("weight") +
+                    " / " +
+                    gem.getData("maxWeight"),
             ]);
         });
         this.gem = gem;
@@ -224,27 +321,32 @@ export class Game extends Scene {
         // 创建背包界面
         this.backpackContainer = this.add.container(400, 300);
         this.backpackContainer.setVisible(false); // 初始状态隐藏
-
+        this.backpackContainer.setDepth(9999);
         let bg = this.add.rectangle(0, 0, 300, 300, 0xe8c5e5).setOrigin(0.5);
         this.backpackContainer.add(bg);
 
         const itemsJson = [
             {
-                name: "item1",
+                name: "golden_key",
                 texture: "golden_key",
                 count: 1,
+                weight: 30,
                 description: "可以打开黄金箱子",
             },
             {
-                name: "item2",
+                name: "silver_key",
                 texture: "silver_key",
                 count: 2,
+                weight: 20,
+
                 description: "可以打开银箱子",
             },
             {
-                name: "item3",
+                name: "copper_key",
                 texture: "copper_key",
                 count: 3,
+                weight: 10,
+
                 description: "可以打开铜箱子",
             },
         ];
@@ -264,47 +366,31 @@ export class Game extends Scene {
                 this.backpackContainer.add(slot);
             }
         }
-        let items = [];
 
         itemsJson.forEach((itemData, index) => {
-            let x = -125 + (index % gridCols) * gridSize;
-            let y = -125 + Math.floor(index / gridCols) * gridSize;
-            let item = new Item(
-                this,
-                this.backpackContainer,
-                x,
-                y,
-                itemData.texture,
-                itemData.name,
-                itemData.count,
-                itemData.description
-            );
-            items.push(item);
-        });
-
-        items.forEach((itemData, index) => {
-            this.backpackContainer.bringToTop(itemData.descriptionText);
+            this.addToBag(this.backpackContainer, index, itemData);
         });
 
         // 为按钮添加点击事件
         this.backpackButton.on("pointerdown", () => {
+            this.children.bringToTop(this.backpackContainer);
             this.backpackContainer.setVisible(!this.backpackContainer.visible);
         });
     }
 
     keyboardMove() {
         if (this.cursors.left.isDown) {
-            this.player.setVelocityX(-160);
+            this.player.setVelocityX(-this.player.vx);
         } else if (this.cursors.right.isDown) {
-            this.player.setVelocityX(160);
+            this.player.setVelocityX(this.player.vx);
         } else {
             this.player.setVelocityX(0);
         }
 
         if (this.cursors.up.isDown) {
-            this.player.setVelocityY(-160);
+            this.player.setVelocityY(-this.player.vy);
         } else if (this.cursors.down.isDown) {
-            this.player.setVelocityY(160);
+            this.player.setVelocityY(this.player.vy);
         } else {
             this.player.setVelocityY(0);
         }
@@ -348,7 +434,7 @@ export class Game extends Scene {
             this.col = json.col;
         }
         this.roomLocationText.setText("(" + json.row + "," + json.col + ")");
-        this.boxes.clear(true, true);
+        this.roomItems.clear(true, true);
 
         // console.log(json)
         this.parseJsonUpdatePlayers(json.players);
@@ -364,7 +450,7 @@ export class Game extends Scene {
         console.log(items);
         for (let i = 0; i < items.length; i++) {
             let box_json = items[i];
-            const specificBox = this.boxes
+            const specificBox = this.roomItems
                 .getChildren()
                 .find((box) => box.x === box_json.x && box.y === box_json.y);
             if (specificBox) {
@@ -373,7 +459,7 @@ export class Game extends Scene {
             } else {
                 // console.log(box_json);
 
-                this.boxes
+                this.roomItems
                     .create(box_json.x, box_json.y, box_json.texture)
                     .setScale(0.1)
                     .refreshBody();
@@ -411,6 +497,21 @@ export class Game extends Scene {
                 );
             }
         }
+
+        for (let [key, value] of this.otherPlayers) {
+            let flag = false;
+            for (let i = 0; i < json_data.length; i++) {
+                if (json_data[i].name === key) {
+                    flag = true;
+                    break;
+                }
+            }
+            if (!flag) {
+                value.destroy();
+                this.otherPlayers.delete(key);
+            }
+        }
+        this.gem.data.values.playersCount = this.otherPlayers.size + 1;
     }
 
     parseToSinglePlayer(player_json) {
@@ -424,13 +525,13 @@ export class Game extends Scene {
 
         otherPlayer.setCollideWorldBounds(true);
         otherPlayer.setScale(0.1);
-        this.physics.add.collider(
-            otherPlayer,
-            this.boxes,
-            this.openBox,
-            null,
-            this
-        );
+        // this.physics.add.collider(
+        //     otherPlayer,
+        //     this.roomItems,
+        //     this.openBox,
+        //     null,
+        //     this
+        // );
         return otherPlayer;
     }
 
@@ -452,14 +553,14 @@ export class Game extends Scene {
     getRoom() {
         let room = {
             texture: this.room.texture.key,
-            items: this.getBoxes(),
+            items: this.getItems(),
         };
         return room;
     }
 
-    getBoxes() {
+    getItems() {
         let boxes = [];
-        this.boxes.getChildren().forEach((box) => {
+        this.roomItems.getChildren().forEach((box) => {
             const boxJson = {
                 x: box.x,
                 y: box.y,
@@ -490,8 +591,7 @@ export class Game extends Scene {
 
         this.i++;
 
-        if (this.i === 360)
-        {
+        if (this.i === 360) {
             this.i = 0;
         }
     }

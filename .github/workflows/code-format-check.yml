@@ -23,13 +23,10 @@ jobs:
         server-id: github # Value of the distributionManagement/repository/id field of the pom.xml
         settings-path: ${{ github.workspace }} # location for the settings.xml file
 
-    - name: Run Checkstyle
-      run: 
-          cd backend/world-of-zuul && mvn clean verify --fail-never  # 执行 Maven 构建并运行 Checkstyle 检查
+    - name: Install dependencies
+      working-directory: backend/world-of-zuul
+      run: mvn install
 
-    - name: Fail on errors
-      run: |
-          if [ $? -ne 0 ]; then
-            echo "Code format check failed. Please fix the errors."
-            exit 1
-          fi
+    - name: Run Checkstyle
+      working-directory: backend/world-of-zuul
+      run: mvn checkstyle:check

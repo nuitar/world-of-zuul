@@ -1,0 +1,38 @@
+# This workflow will build a package using Maven and then publish it to GitHub packages when a release is created
+# For more information see: https://github.com/actions/setup-java/blob/main/docs/advanced-usage.md#apache-maven-with-a-settings-path
+
+name: Maven Package
+
+on:
+  push:
+    branches:
+      - backend  # 替换为你的默认分支或者其他你希望触发的分支
+
+jobs:
+   checkstyle:
+
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up JDK 18
+      uses: actions/setup-java@v3
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        server-id: github # Value of the distributionManagement/repository/id field of the pom.xml
+        settings-path: ${{ github.workspace }} # location for the settings.xml file
+
+    - name: Install dependencies
+      working-directory: backend/world-of-zuul
+      run: mvn -B clean test
+      
+    - name: Upload Test Results
+      if: always()
+      uses: actions/upload-artifact@v2
+      with:
+        name: test-results
+        path: backend/world-of-zuul/target/surefire-reports

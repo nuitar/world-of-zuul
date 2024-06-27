@@ -47,5 +47,5 @@ jobs:
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
         asset_path: ./backend/world-of-zuul/target/world-of-zuul-0.0.1-SNAPSHOT.jar  # 修改为实际的 jar 文件路径
-        asset_name: orld-of-zuul-0.0.1.jar  # 修改为实际的 jar 文件名
+        asset_name: world-of-zuul-0.0.1.jar  # 修改为实际的 jar 文件名
         asset_content_type: application/java-archive

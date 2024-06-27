@@ -1,16 +1,31 @@
 import { Scene } from "phaser";
 
-export class Item extends Phaser.GameObjects.Image {
+export class BagItem extends Phaser.GameObjects.Image {
     /**
-     * @param {Scene} scene 第一个数字
+     * @param {Scene} scene
      */
-    constructor(scene, container, x, y, texture, name, count, description) {
+    constructor(
+        scene,
+        player,
+        container,
+        x,
+        y,
+        texture,
+        name,
+        weight,
+        count,
+        description
+    ) {
         super(scene, x, y, texture);
-        this.scene = scene;
+        // this.scene = scene;
+        this.weight = weight;
+        this.player = player;
         this.container = container;
         this.name = name;
         this.count = count;
         this.description = description;
+
+        this.player.nowWeight += count*weight;
 
         this.setDisplaySize(40, 40);
 
@@ -63,16 +78,16 @@ export class Item extends Phaser.GameObjects.Image {
         this.countText = this.scene.add
             .text(x + 10, y + 10, this.count, {
                 fontSize: "16px",
-                fill: "#ffffff",
+                fill: "#000000",
             })
             .setOrigin(0.5);
 
         // 添加描述文本（初始状态隐藏）
         this.descriptionText = this.scene.add
-            .text(x, y - 20, this.description, {
+            .text(x, y - 20, this.description + "\n" + "weight:" + this.weight, {
                 fontSize: "12px",
-                fill: "#ffffff",
-                backgroundColor: "#000000",
+                fill: "#000000",
+                backgroundColor: "#ffffff",
             })
             .setOrigin(0.5)
             .setVisible(false);
@@ -93,14 +108,12 @@ export class Item extends Phaser.GameObjects.Image {
         });
 
         this.on("pointerdown", () => {
-            if (!this.useButton.visible)
-                this.showButtons();
-            else
-                this.hideButtons();
+            if (!this.useButton.visible) this.showButtons();
+            else this.hideButtons();
         });
 
         this.useButton.on("pointerdown", () => {
-            this.use();
+            this.use(this.scene, this.player);
             console.log(this.name + "使用成功");
         });
 
@@ -115,11 +128,62 @@ export class Item extends Phaser.GameObjects.Image {
         });
     }
 
-    use() {
+    use(scene, player) {
         this.updateCount(this.count - 1);
         this.hideButtons();
         // TODO 物品使用逻辑
+        let textureKey = this.texture.key;
+        let v = 80;
+        if (textureKey.includes("box")) {
+        } else if (textureKey.includes("hypno_shroom")) {
+            player.vx += v;
+            player.vy += v;
+
+            this.playerVReverse(player);
+
+            scene.time.addEvent({
+                delay: 5000,
+                callback: () => {
+                    // this.playerVReverse(player)
+                    player.vx = 160;
+                    player.vy = 160;
+                },
+                // callbackScope: this.scene,
+            });
+        } else if (textureKey.includes("lightning_boot")) {
+            player.vx += v;
+            player.vy += v;
+
+            scene.time.addEvent({
+                delay: 5000,
+                callback: () => {
+                    // this.playerVReverse(player)
+                    player.vx = 160 - v * 0.5;
+                    player.vy = 160 - v * 0.5;
+                },
+                // callbackScope: this.scene,
+            });
+            scene.time.addEvent({
+                delay: 8000,
+                callback: () => {
+                    player.vx = 160;
+                    player.vy = 160;
+                },
+                // callbackScope: this.scene,
+            });
+        } else if (textureKey.includes("magic_cookie")) {
+            player.maxWeight += 50;
+        }
+        // if (!textureKey.includes("box")) {
+        //     this.player.nowWeight -= this.weight;
+        // }
     }
+
+    playerVReverse(player) {
+        player.vx *= -1;
+        player.vy *= -1;
+    }
+
     showButtons() {
         this.useButton.setVisible(true);
         this.discardButton.setVisible(true);
@@ -133,7 +197,7 @@ export class Item extends Phaser.GameObjects.Image {
         this.discardAllButton.setVisible(false);
     }
     discardAll() {
-        this.remove();
+        this.updateCount(0);
     }
 
     discard() {
@@ -154,10 +218,16 @@ export class Item extends Phaser.GameObjects.Image {
 
     // 更新物品数量
     updateCount(newCount) {
+        let diff = newCount - this.count;
+
         this.count = newCount;
+        this.player.nowWeight += diff*this.weight;
+
         if (this.count <= 0) {
             this.remove();
         }
         this.countText.setText(newCount);
     }
 }
+
+export class RoomItem extends Phaser.GameObjects.Image {}

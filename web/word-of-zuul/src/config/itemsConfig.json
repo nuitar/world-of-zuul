@@ -1,0 +1,211 @@
+{
+    "components": [
+        {
+            "id": 1,
+            "name": "golden_box",
+            "texture": "golden_box",
+            "count": 0,
+            "weight": 9999,
+            "description": "黄金箱子",
+            "path": "assets/box/golden_box.png"
+        },
+        {
+            "id": 2,
+            "name": "silver_box",
+            "texture": "silver_box",
+            "count": 0,
+            "weight": 9999,
+
+            "description": "银箱子",
+            "path": "assets/box/silver_box.png"
+        },
+        {
+            "id": 3,
+            "name": "copper_box",
+            "texture": "copper_box",
+            "count": 0,
+            "weight": 9999,
+
+            "description": "铜箱子",
+            "path": "assets/box/copper_box.png"
+        },
+        {
+            "id": 4,
+            "name": "golden_box_open",
+            "texture": "golden_box_open",
+            "count": 0,
+            "weight": 9999,
+
+            "description": "打开的金箱子",
+            "path": "assets/box/golden_box_open.png"
+        },
+        {
+            "id": 5,
+            "name": "silver_box_open",
+            "texture": "silver_box_open",
+            "count": 0,
+            "weight": 9999,
+
+            "description": "打开的银箱子",
+            "path": "assets/box/silver_box_open.png"
+        },
+        {
+            "id": 6,
+            "name": "copper_box_open",
+            "texture": "copper_box_open",
+            "count": 0,
+            "weight": 9999,
+
+            "description": "打开的铜箱子",
+            "path": "assets/box/copper_box_open.png"
+        },
+        {
+            "id": 7,
+            "name": "golden_key",
+            "texture": "golden_key",
+            "count": 1,
+            "weight": 30,
+
+            "description": "可以打开金箱子",
+            "path": "assets/key/golden_key.png"
+        },
+        {
+            "id": 8,
+            "name": "silver_key",
+            "texture": "silver_key",
+            "count": 1,
+            "weight": 20,
+
+            "description": "可以打开银箱子",
+            "path": "assets/key/silver_key.png"
+        },
+        {
+            "id": 9,
+            "name": "copper_key",
+            "texture": "copper_key",
+            "count": 1,
+            "weight": 10,
+
+            "description": "可以打开铜箱子",
+            "path": "assets/key/copper_key.png"
+        },
+        {
+            "id": 10,
+            "name": "hypno_shroom",
+            "texture": "hypno_shroom",
+            "count": 1,
+            "weight": 35,
+
+            "description": "魅惑菇，吃了之后方向反转",
+            "path": "assets/component/hypno_shroom.png"
+        },
+        {
+            "id": 11,
+            "name": "lightning_boot",
+            "texture": "lightning_boot",
+            "count": 1,
+            "weight": 40,
+
+            "description": "闪电鞋，可以使你移动速度更快",
+            "path": "assets/component/lightning_boot.png"
+        },
+        {
+            "id": 12,
+            "name": "magic_cookie",
+            "texture": "magic_cookie",
+            "count": 1,
+            "weight": 10,
+
+            "description": "魔法饼干，吃完之后可以增加负重",
+            "path": "assets/component/magic_cookie.png"
+        }
+    ],
+    "rooms": [
+        {
+            "id": 1,
+            "name": "room_01",
+            "texture": "room_01",
+            "description": "room_01",
+            "path": "assets/room/simple_room_01.png"
+        },
+        {
+            "id": 2,
+            "name": "room_02",
+            "texture": "room_02",
+            "description": "room_02",
+            "path": "assets/room/simple_room_02.png"
+        },
+        {
+            "id": 3,
+            "name": "room_03",
+            "texture": "room_03",
+            "description": "room_03",
+            "path": "assets/room/simple_room_03.png"
+        },
+        {
+            "id": 4,
+            "name": "room_04",
+            "texture": "room_04",
+            "description": "room_04",
+            "path": "assets/room/simple_room_04.png"
+        },
+        {
+            "id": 5,
+            "name": "room_05",
+            "texture": "room_05",
+            "description": "room_05",
+            "path": "assets/room/simple_room_05.png"
+        },
+        {
+            "id": 6,
+            "name": "room_06",
+            "texture": "room_06",
+            "description": "room_06",
+            "path": "assets/room/simple_room_06.png"
+        },
+        {
+            "id": 7,
+            "name": "room_07",
+            "texture": "room_07",
+            "description": "room_07",
+            "path": "assets/room/simple_room_07.png"
+        },
+        {
+            "id": 8,
+            "name": "room_08",
+            "texture": "room_08",
+            "description": "room_08",
+            "path": "assets/room/simple_room_08.png"
+        },
+        {
+            "id": 9,
+            "name": "room_09",
+            "texture": "room_09",
+            "description": "room_09",
+            "path": "assets/room/simple_room_09.png"
+        },
+        {
+            "id": 10,
+            "name": "transition_room",
+            "texture": "transition_room",
+            "description": "transition_room",
+            "path": "assets/room/transition_room.png"
+        }
+    ],
+    "players": [
+        {
+            "id": 1,
+            "name": "boy",
+            "texture": "player_0",
+            "description": "player_0",
+            "path": "assets/player/player_0.png"
+        },
+        {
+            "id": 2,
+            "name": "girl",
+            "texture": "player_1",
+            "description": "player_1",
+            "path": "assets/player/player_1.png"
+        }
+    ]
+}

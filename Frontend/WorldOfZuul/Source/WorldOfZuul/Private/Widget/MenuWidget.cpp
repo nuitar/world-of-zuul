@@ -7,6 +7,7 @@
 #include "Gameplay/WOZGameInstance.h"
 #include "Interfaces/IHttpResponse.h"
 #include "Kismet/GameplayStatics.h"
+#include "Kismet/KismetArrayLibrary.h"
 #include "Widget/DialogWidget.h"
 #include "Widget/GameHistoryWidget.h"
 
@@ -169,10 +170,12 @@ void UMenuWidget::OnLoadHistoryResponseReceived(FHttpRequestPtr Request, FHttpRe
 			for (const TSharedPtr<FJsonValue>& JsonValue : Arr)
 			{
 				const auto& Obj = JsonValue->AsObject();
+				const FString& Date = Obj->GetStringField("time");
 				const FString& Str = Obj->GetStringField("gameHistoryData");
 				FWOZGameHistoryData GameHistoryData;
 				FJsonObjectConverter::JsonObjectStringToUStruct(Str, &GameHistoryData);
-				GameHistoryDatas.Emplace(GameHistoryData);
+				GameHistoryData.DateString = Date;
+				GameHistoryDatas.EmplaceAt(0, GameHistoryData);
 			}
 		}
 	}

@@ -25,8 +25,7 @@ jobs:
 
     - name: Run Checkstyle
       run: 
-          cd backend/world-of-zuul
-          mvn clean verify --fail-never  # 执行 Maven 构建并运行 Checkstyle 检查
+          cd backend/world-of-zuul && mvn clean verify --fail-never  # 执行 Maven 构建并运行 Checkstyle 检查
 
     - name: Fail on errors
       run: |

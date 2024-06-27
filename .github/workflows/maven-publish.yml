@@ -3,7 +3,11 @@
 
 name: Maven Package
 
-on: [push]
+on:
+  push:
+    branches:
+      - master  # 替换为你的默认分支或者其他你希望触发的分支
+      - dev
 
 jobs:
   build:

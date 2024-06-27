@@ -4,7 +4,9 @@ export class MainMenu extends Scene {
     constructor() {
         super("MainMenu");
     }
-
+    preload() {
+        this.load.html("login", "assets/enroll.html");
+    }
     addText(x, y, text, next_scene) {
         let action = this.add
             .text(x, y, text, {
@@ -37,13 +39,37 @@ export class MainMenu extends Scene {
         }
     }
 
-    
     create() {
-        
         this.add.image(512, 512, "background");
 
         this.add.image(512, 300, "logo");
 
         this.initMenu();
+        // this.initForm();
+    }
+
+    initForm() {
+        const element = this.add.dom(512, 384).createFromCache("login");
+
+        element.setPerspective(800);
+
+        element.addListener("click");
+
+        element.on("click", function (event) {
+            if (event.target.name === "createRoomButton") {
+                const roomId = this.getChildByName("roomId");
+                if (roomId.value !== "") {
+                    let roomIdValue = roomId.value;
+                    this.removeListener("click");
+                    element.setVisible(false);
+                    this.scene.initWebSocket(roomIdValue);
+                    this.scene.gem.data.values.roomId = roomIdValue;
+                }
+            }
+            if (event.target.name === "quitButton") {
+                this.removeListener("click");
+                element.setVisible(false);
+            }
+        });
     }
 }

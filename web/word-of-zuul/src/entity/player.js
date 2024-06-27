@@ -9,5 +9,9 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         // 初始血量和魔力
         this.health = 200;
         this.mana = 100;
+        this.maxWeight = 200;
+        this.nowWeight = 0;
+        this.vx = 160;
+        this.vy = 160
     }
 }

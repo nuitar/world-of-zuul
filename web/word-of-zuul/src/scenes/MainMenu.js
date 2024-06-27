@@ -5,7 +5,7 @@ export class MainMenu extends Scene {
         super("MainMenu");
     }
     preload() {
-        this.load.html("login", "assets/enroll.html");
+        this.load.html("login", "assets/html/enroll.html");
     }
     addText(x, y, text, next_scene) {
         let action = this.add

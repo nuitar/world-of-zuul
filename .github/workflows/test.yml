@@ -10,7 +10,7 @@ on:
       - dev
       - master
 jobs:
-   checkstyle:
+   junit:
 
     runs-on: ubuntu-latest
     permissions:

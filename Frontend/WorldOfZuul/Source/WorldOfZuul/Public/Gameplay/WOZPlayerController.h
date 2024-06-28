@@ -37,6 +37,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "WOZ")
 	void ExecuteCommand_DirectionTarget(TEnumAsByte<EWOZCommand::Type> Command, TEnumAsByte<EWOZGameRoomDirection::Type> Target);
 
+	UFUNCTION(NetMulticast, Unreliable)
 	void OnGameRemainTimeTick(float RemainTime);
 	void OnGameEnded();
 	void SaveClear();

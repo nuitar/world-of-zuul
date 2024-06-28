@@ -115,6 +115,15 @@ void AWOZPlayerController::OnRep_PlayerState()
 		{
 			OverlayWidget->SetRenderTarget(SceneCapture2D->GetCaptureComponent2D()->TextureTarget);
 		}
+
+		WOZPlayerState->SetMaxWeight(GameplayData->PlayerDefaultMaxWeight);
+		FWOZCommandReplyMsg Msg;
+		Msg.Command = FText::FromString(TEXT("welcome"));
+		FString Str = TEXT("欢迎来到World of Zuul。");
+		Str += TEXT("\n输入\"help\"或使用快捷指令查看帮助。");
+		Str += TEXT("\n祝您游戏愉快。");
+		Msg.Reply = FText::FromString(Str);
+		ReplyCommand(Msg);
 	}
 }
 
@@ -122,7 +131,7 @@ void AWOZPlayerController::OnRep_Pawn()
 {
 	Super::OnRep_Pawn();
 
-	if (!GetPawn()) return;
+	if (!GetPawn() || !IsLocalController()) return;
 	if (SceneCapture2D) return;
 	
 	if (ASceneCapture2D* SC2D = Cast<ASceneCapture2D>(UGameplayStatics::GetActorOfClass(this, ASceneCapture2D::StaticClass())))
@@ -342,7 +351,7 @@ void AWOZPlayerController::ExecuteCommand_DirectionTarget(TEnumAsByte<EWOZComman
 	ExecuteCommand(CommandString);
 }
 
-void AWOZPlayerController::OnGameRemainTimeTick(float RemainTime)
+void AWOZPlayerController::OnGameRemainTimeTick_Implementation(float RemainTime)
 {
 	if (OverlayWidget)
 	{
@@ -429,8 +438,8 @@ void AWOZPlayerController::OnGameEnded_Client_Implementation()
 
 void AWOZPlayerController::ReplyCommand_Implementation(const FWOZCommandReplyMsg& Msg)
 {
-	check(OverlayWidget);
-
+	//check(OverlayWidget);
+	if (!OverlayWidget) return;
 	OverlayWidget->AddCommandReplyMsg(Msg);
 }
 
